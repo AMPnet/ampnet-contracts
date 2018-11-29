@@ -1,0 +1,21 @@
+{
+  "name": "crowdfunding-contracts",
+  "version": "1.0.0",
+  "description": "Core contracts for AMPnet crowdinvestment platform",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "lint": "solhint \"contracts/**/*.sol\"",
+    "test": "truffle test"
+  },
+  "author": "ampnet.io",
+  "license": "ISC",
+  "dependencies": {
+    "openzeppelin-solidity": "^2.0.0"
+  },
+  "devDependencies": {
+    "solhint": "^1.4.0"
+  }
+}
