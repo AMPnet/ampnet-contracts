@@ -21,5 +21,12 @@ module.exports = {
             port: 8545,
             network_id: "*"
         }
+    },
+    mocha: {
+        reporter: 'eth-gas-reporter',
+        reporterOptions : {
+            currency: 'EUR',
+            outputFile: 'gas-report/stats'
+        }
     }
 };
