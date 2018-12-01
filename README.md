@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/AMPnet/ampnet-contracts.svg?style=svg&circle-token=57705136b401402b37ce656c017f5505b355721e)](https://circleci.com/gh/AMPnet/ampnet-contracts)
+
 # AMPnet Crowdfunding contracts
 
 AMPnet Crowdfunding core smart contracts written in Solidity using [Truffle tools](https://truffleframework.com/) environment.
