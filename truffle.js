@@ -25,8 +25,7 @@ module.exports = {
     mocha: {
         reporter: 'eth-gas-reporter',
         reporterOptions : {
-            currency: 'EUR',
-            outputFile: 'gas-report/stats'
+            currency: 'EUR'
         }
     }
 };
