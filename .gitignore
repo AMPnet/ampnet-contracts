@@ -102,6 +102,7 @@ lib-cov
 
 # Coverage directory used by tools like istanbul
 coverage
+coverage.json
 
 # Gas reports
 gas-report
