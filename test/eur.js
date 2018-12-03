@@ -44,12 +44,12 @@ contract("EUR", function(accounts) {
     it("should fail if trying to mint tokens to user registered by AMPnet when caller not issuing authority", async () => {
         await createTestUser(bob);
         const forbiddenMint = eur.mint(bob, eurToToken(1000), { from: bob });
-        assertRevert(forbiddenMint, "Only EUR token issuer can mint tokens!");
+        await assertRevert(forbiddenMint, "Only EUR token issuer can mint tokens!");
     });
 
     it("should fail if issuing authority trying to mint tokens to user not registered by AMPnet", async () => {
         const forbiddenMint = eur.mint(bob, eurToToken(1000), { from: eurTokenOwner });
-        assertRevert(forbiddenMint, "Token issuer can mint only for users registered by AMPnet!");
+        await assertRevert(forbiddenMint, "Token issuer can mint only for users registered by AMPnet!");
     });
 
     it("can burn tokens if user allowed token issuer to do so (withdraw option)", async () => {
@@ -72,7 +72,7 @@ contract("EUR", function(accounts) {
 
         await eur.mint(bob, eurToToken(1000), { from: eurTokenOwner });
         const failedBurn = eur.burnFrom(bob, eurToToken(1000), { from: eurTokenOwner });
-        assertRevert(failedBurn, "Only reserved tokens can be burnt by issuing authority.");
+        await assertRevert(failedBurn, "Only reserved tokens can be burnt by issuing authority.");
     });
 
     it("should fail if trying to burn tokens but caller not token issuer", async () => {
@@ -81,14 +81,14 @@ contract("EUR", function(accounts) {
         await eur.approve(eurTokenOwner, eurToToken(500), { from: bob });
 
         const failedBurn = eur.burnFrom(bob, eurToToken(1000), { from: bob });
-        assertRevert(failedBurn, "Only issuing authority can burn tokens.");
+        await assertRevert(failedBurn, "Only issuing authority can burn tokens.");
     });
 
     it("should fail if trying to give allowance to anyone other but issuing authority", async () => {
         await createTestUser(bob);
         await eur.mint(bob, eurToToken(1000), { from: eurTokenOwner }); // mint 1k EUR to bob
         const failedApprove = eur.approve(alice, eurToToken(500), { from: bob });
-        assertRevert(failedApprove, "Can only give allowance to issuing authority.");
+        await assertRevert(failedApprove, "Can only give allowance to issuing authority.");
     });
 
     it("can process new investment into specific project registered on AMPnet platform", async () => {
@@ -134,7 +134,7 @@ contract("EUR", function(accounts) {
         );
         await eur.mint(bob, eurToToken(2000), { from: eurTokenOwner });
         const failedInvest = eur.invest(project.address, eurToToken(1000), { from: bob });
-        assertRevert(failedInvest, "User can invest in AMPnet registered projects only!");
+        await assertRevert(failedInvest, "User can invest in AMPnet registered projects only!");
     });
 
     it("should fail if user trying to invest in project but user not registered in AMPnet contract", async () => {
@@ -142,7 +142,7 @@ contract("EUR", function(accounts) {
         const organization = await createAndActivateTestOrganization("Greenpeace", bob);
         const project = await addTestProject(organization, bob, testProject);
         const failedInvest = eur.invest(project.address, eurToToken(1000), { from: alice });
-        assertRevert(failedInvest, "Only registered users can invest in AMPnet projects!");
+        await assertRevert(failedInvest, "Only registered users can invest in AMPnet projects!");
     });
 
     it("should fail if user investing 0 tokens", async () => {
@@ -151,7 +151,7 @@ contract("EUR", function(accounts) {
         const organization = await createAndActivateTestOrganization("Greenpeace", bob);
         const project = await addTestProject(organization, bob, testProject);
         const failedInvest = eur.invest(project.address, eurToToken(0), { from: bob });
-        assertRevert(failedInvest, "Can't invest 0 tokens!");
+        await assertRevert(failedInvest, "Can't invest 0 tokens!");
     });
 
     it("should fail if user investing more than available on account balance", async () => {
@@ -160,7 +160,7 @@ contract("EUR", function(accounts) {
         const organization = await createAndActivateTestOrganization("Greenpeace", bob);
         const project = await addTestProject(organization, bob, testProject);
         const failedInvest = eur.invest(project.address, eurToToken(3000), { from: bob });
-        assertRevert(failedInvest, "Can't invest more tokens than actually owned!");
+        await assertRevert(failedInvest, "Can't invest more tokens than actually owned!");
     });
 
     it("should fail if user investing more than project's per-user max investment limit", async () => {
@@ -169,7 +169,7 @@ contract("EUR", function(accounts) {
         const organization = await createAndActivateTestOrganization("Greenpeace", bob);
         const project = await addTestProject(organization, bob, testProject);
         const failedInvest = eur.invest(project.address, eurToToken(10001), { from: bob });
-        assertRevert(failedInvest, "Can't invest more than project's per-user maximum!");
+        await assertRevert(failedInvest, "Can't invest more than project's per-user maximum!");
     });
 
     it("should fail if user investing less than project's per-user min investment limit", async () => {
@@ -178,7 +178,7 @@ contract("EUR", function(accounts) {
         const organization = await createAndActivateTestOrganization("Greenpeace", bob);
         const project = await addTestProject(organization, bob, testProject);
         const failedInvest = eur.invest(project.address, eurToToken(999), { from: bob });
-        assertRevert(failedInvest, "Can't invest less than project's per-user minimum!");
+        await assertRevert(failedInvest, "Can't invest less than project's per-user minimum!");
     });
 
     it("should fail if user trying to invest funds after which project's total investment would surpass investment cap", async () => {
@@ -196,7 +196,7 @@ contract("EUR", function(accounts) {
 
         // Bob will also try to invest 3k EUR but only 2k is possible (5k investment cap), expecting fail
         const failedInvest = eur.invest(project.address, eurToToken(3000), { from: bob });
-        assertRevert(failedInvest, "Surpassed project's investment cap!");
+        await assertRevert(failedInvest, "Surpassed project's investment cap!");
     });
 
     it("can process multiple user investments in same project, as long as total investment is in min/max boundaries", async () => {
@@ -256,7 +256,7 @@ contract("EUR", function(accounts) {
         await eur.mint(bob, eurToToken(5000), { from: eurTokenOwner });
 
         const failingTransaction = eur.transfer(alice, eurToToken(1000), { from: bob });
-        assertRevert(failingTransaction, "Cannot transfer funds to wallets not registered by AMPnet!");
+        await assertRevert(failingTransaction, "Cannot transfer funds to wallets not registered by AMPnet!");
     });
 
 
