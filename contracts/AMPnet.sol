@@ -43,6 +43,7 @@ contract AMPnet is Ownable {
     */
     function setEur(EUR eur) public onlyOwner {
         _eur = eur;
+        addWallet(eur);
     }
 
     function addWallet(address wallet) public onlyOwner {

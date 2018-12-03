@@ -117,7 +117,7 @@ contract('Organization', function(accounts) {
         await createTestUser(bob);
         const organization = await createTestOrganization("Greenpeace", bob);
         const addProject = addTestProject(organization, bob);
-        assertRevert(addProject, "Only verified organizations can create new projects!");
+        await assertRevert(addProject, "Only verified organizations can create new projects!");
     });
 
     it(`can add new user if: 
