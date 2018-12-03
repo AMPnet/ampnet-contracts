@@ -70,6 +70,8 @@ contract('Organization', function(accounts) {
         const actualMinInvestmentPerUser    = await deployedProject.getMinInvestmentPerUser();
         const actualInvestmentCap           = await deployedProject.getInvestmentCap();
 
+        const isProjectWalletActive = await ampnet.isWalletActive(deployedProject.address);
+
         assert.strictEqual(
             actualName,
             testProject.name,
@@ -99,6 +101,8 @@ contract('Organization', function(accounts) {
             testProject.investmentCap,
             "Deployed project investment cap different from expected."
         );
+
+        assert.isOk(isProjectWalletActive, "When project is created, project's EUR wallet should be active.");
     });
 
     it("should fail to create project if caller is not an organization admin", async () => {

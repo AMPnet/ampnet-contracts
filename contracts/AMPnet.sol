@@ -30,6 +30,14 @@ contract AMPnet is Ownable {
         _;
     }
 
+    modifier onlyVerifiedOrganization {
+        Organization org = Organization(msg.sender);
+        require(
+            organizationExists(org) && org.isVerified()
+        );
+        _;
+    }
+
     /**
         Functions
     */
@@ -40,6 +48,11 @@ contract AMPnet is Ownable {
     function addWallet(address wallet) public onlyOwner {
         _activeWallets[wallet] = true;
         emit WalletAdded(wallet);
+    }
+
+    function addProjectWallet(Project project) public onlyVerifiedOrganization {
+        _activeWallets[project] = true;
+        emit WalletAdded(project);
     }
 
     function removeWallet(address wallet) public onlyOwner {
@@ -62,6 +75,14 @@ contract AMPnet is Ownable {
 
     function getAllOrganizations() public view returns (Organization[]) {
         return _organizations;
+    }
+
+    function organizationExists(Organization organization) public view returns (bool) {
+        uint count = _organizations.length;
+        for(uint i=0; i<count; i++) {
+            if (_organizations[i] == organization) return true;
+        }
+        return false;
     }
 
     function isWalletActive(address wallet) public view returns (bool) {

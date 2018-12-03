@@ -87,6 +87,7 @@ contract Organization {
             _ampnet
         );
         _projects.push(project);
+        _ampnet.addProjectWallet(project);
     }
 
     function addMember(
