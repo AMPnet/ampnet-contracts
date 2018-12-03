@@ -24,6 +24,3 @@ jobs:
       - run:
           name: Lint contracts
           command: npm run lint
-      - run:
-          name: Analyze coverage
-          command: npm run coverage
