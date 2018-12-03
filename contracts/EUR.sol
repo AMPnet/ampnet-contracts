@@ -35,6 +35,14 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
         _;
     }
 
+    modifier isTokenIssuer(address wallet) {
+        require(
+            isMinter(wallet),
+            "Not token issuer!"
+        );
+        _;
+    }
+
     /**
         Investment logic
     */
@@ -68,20 +76,6 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
         Override standard ERC20 implementation in order to
         bound token transfers between registered users only.
     */
-    function allowance(
-        address owner,
-        address spender
-    )
-    public
-    view
-    isRegistered(owner)
-    isRegistered(spender)
-    senderRegistered
-    returns (uint256)
-    {
-        return super.allowance(owner, spender);
-    }
-
     function transfer(
         address to,
         uint256 value
@@ -99,7 +93,7 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
         uint256 value
     )
     public
-    isRegistered(spender)
+    isTokenIssuer(spender)
     senderRegistered
     returns (bool)
     {
@@ -142,6 +136,27 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
     returns (bool)
     {
         return super.decreaseAllowance(spender, subtractedValue);
+    }
+
+    function mint(
+        address to,
+        uint256 value
+    )
+    public
+    onlyMinter
+    isRegistered(to)
+    returns (bool)
+    {
+        _mint(to, value);
+        return true;
+    }
+
+    function burn(uint256 value) public {
+        _burn(msg.sender, value);
+    }
+
+    function burnFrom(address from, uint256 value) public {
+        _burnFrom(from, value);
     }
 
 }
