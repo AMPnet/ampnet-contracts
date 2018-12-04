@@ -259,6 +259,55 @@ contract("EUR", function(accounts) {
         await assertRevert(failingTransaction, "Cannot transfer funds to wallets not registered by AMPnet!");
     });
 
+    it("should fail when anyone tries to burn his own tokens - only token issuer can burn", async () => {
+        await createTestUser(bob);
+        await eur.mint(bob, eurToToken(1000), { from: eurTokenOwner });
+        const failedBurn = eur.burn(eurToToken(1000));
+        await assertRevert(failedBurn, "Expected burning own tokens to fail!")
+    });
+
+    it("should fail when calling transferFrom - blocked function", async () => {
+        await createTestUser(bob);
+        await createTestUser(alice);
+        const failedTransfer = eur.transferFrom(bob, alice, eurToToken(100));
+        await assertRevert(failedTransfer, "Expected function transferFrom to be blocked!");
+    });
+
+    it("can only increase/decrease allowance if spender is token issuer", async () => {
+        await createTestUser(bob);
+        await createTestUser(alice);
+
+        await eur.mint(bob, eurToToken(1000), { from: eurTokenOwner });
+
+        // Bob can increase allowance for token issuer
+        await eur.increaseAllowance(eurTokenOwner, eurToToken(500), { from: bob });
+        const increasedAllowance = await eur.allowance(bob, eurTokenOwner);
+        assert.strictEqual(
+            increasedAllowance.toNumber(),
+            eurToToken(500),
+            "Expected allowance to increase by 500!"
+        );
+
+        await eur.decreaseAllowance(eurTokenOwner, eurToToken(500), { from: bob });
+        const decreasedAllowance = await eur.allowance(bob, eurTokenOwner);
+        assert.strictEqual(
+            decreasedAllowance.toNumber(),
+            0,
+            "Expected allowance to decrease by 500!"
+        );
+
+        const failedAllowanceIncrease =  eur.increaseAllowance(alice, eurToToken(500), { from: bob });
+        await assertRevert(
+            failedAllowanceIncrease,
+            "Expected allowance increase to fail when spender not token issuer."
+        );
+
+        const failedAllowanceDecrease =  eur.decreaseAllowance(alice, eurToToken(500), { from: bob });
+        await assertRevert(
+            failedAllowanceDecrease,
+            "Expected allowance decrease to fail when spender not token issuer."
+        );
+    });
 
     // --- HELPER FUNCTIONS --- ///
 

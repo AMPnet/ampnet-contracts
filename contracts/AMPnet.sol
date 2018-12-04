@@ -55,12 +55,7 @@ contract AMPnet is Ownable {
         _activeWallets[project] = true;
         emit WalletAdded(project);
     }
-
-    function removeWallet(address wallet) public onlyOwner {
-        // TODO: - How to handle this case?
-        // What if user has balance in EUR? Should this even be supported?
-    }
-
+    
     function addOrganization(
         string name
     )
@@ -68,10 +63,6 @@ contract AMPnet is Ownable {
         walletActive
     {
         _organizations.push(new Organization(msg.sender, name, this));
-    }
-
-    function removeOrganization() public onlyOwner {
-        // Should we allow this?
     }
 
     function getAllOrganizations() public view returns (Organization[]) {

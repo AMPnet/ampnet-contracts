@@ -64,6 +64,14 @@ contract('AMPnet', function(accounts) {
 
     });
 
+    it("should signal organization does not exist if org not created by AMPnet", async () => {
+        const bob = accounts[0];
+        const organization = await Organization.new(bob, "Greenpeace", ampnet.address);
+        const organizationExists = await ampnet.organizationExists(organization.address);
+
+        assert.notOk(organizationExists, "Organization should not exist if created by anyone other than AMPnet!");
+    });
+
     it("should fail if non-registered user is trying to create organization", async () => {
         const organizationName = "Greenpeace";
         const addOrganization = ampnet.addOrganization(organizationName, { from: bob });
