@@ -106,12 +106,9 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
         uint256 value
     )
     public
-    isRegistered(from)
-    isRegistered(to)
-    senderRegistered
     returns (bool)
     {
-        return super.transferFrom(from, to, value);
+        revert();
     }
 
     function increaseAllowance(
@@ -119,8 +116,8 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
         uint256 addedValue
     )
     public
-    isRegistered(spender)
     senderRegistered
+    isTokenIssuer(spender)
     returns (bool)
     {
         return super.increaseAllowance(spender, addedValue);
@@ -131,8 +128,8 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
         uint256 subtractedValue
     )
     public
-    isRegistered(spender)
     senderRegistered
+    isTokenIssuer(spender)
     returns (bool)
     {
         return super.decreaseAllowance(spender, subtractedValue);
@@ -151,9 +148,7 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
         return true;
     }
 
-    function burn(uint256 value) public {
-        _burn(msg.sender, value);
-    }
+    function burn(uint256 value) public { revert(); }
 
     function burnFrom(address from, uint256 value) public {
         _burnFrom(from, value);

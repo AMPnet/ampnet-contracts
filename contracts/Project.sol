@@ -86,10 +86,6 @@ contract Project {
         _investments[msg.sender] -= amount;
     }
 
-    function getOrganization() public view returns (Organization) {
-        return _organization;
-    }
-
     function getName() public view returns (string) {
         return _name;
     }

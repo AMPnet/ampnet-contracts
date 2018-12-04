@@ -272,13 +272,13 @@ contract('Project', function(accounts) {
         const aliceFetchedInvestment = await project.getTotalInvestmentForUser(alice);
         const janeFetchedInvestment = await project.getTotalInvestmentForUser(jane);
 
-        assert.strictEqual(
+        await assert.strictEqual(
             aliceFetchedInvestment.toNumber(),
             aliceFinalInvestment,
             "Expected Alice's investment to be decreased for amount of tokens sent to Jane"
         );
 
-        assert.strictEqual(
+        await assert.strictEqual(
             janeFetchedInvestment.toNumber(),
             janeFinalInvestment,
             "Expected Jane's investment to be increased for amount of tokens sent from Alice"
@@ -297,7 +297,7 @@ contract('Project', function(accounts) {
         await eur.invest(project.address, eurToToken(5000), { from: alice });
 
         const failedTransfer = project.transferOwnership(jane, eurToToken(0), { from: alice });
-        assertRevert(
+        await assertRevert(
             failedTransfer,
             "Cannot transfer ownership of 0 tokens!"
         );
@@ -316,7 +316,7 @@ contract('Project', function(accounts) {
 
         // Alice is trying to transfer 4000 EUR tokens but owns only 3000 EUR of investments
         const failedTransfer = project.transferOwnership(jane, eurToToken(4000), { from: alice });
-        assertRevert(
+        await assertRevert(
             failedTransfer,
             "Cannot transfer more tokens than actually invested!"
         );
@@ -334,7 +334,7 @@ contract('Project', function(accounts) {
 
         // Alice is trying to transfer 3000 EUR tokens to someone not registered by AMPnet
         const failedTransfer = project.transferOwnership(jane, eurToToken(3000), { from: alice });
-        assertRevert(
+        await assertRevert(
             failedTransfer,
             "Cannot transfer tokens to someone not registered by AMPnet!"
         );
