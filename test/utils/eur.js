@@ -1,7 +1,14 @@
+var factor = 1000000000000000000;
+
 var eurToToken = function (eur) {
-    return eur * 1000000000000000000;
-}
+    return eur * factor;
+};
+
+var tokenToEur = function (token) {
+    return token / factor;
+};
 
 Object.assign(exports, {
-    eurToToken
+    eurToToken,
+    tokenToEur
 });

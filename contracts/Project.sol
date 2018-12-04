@@ -78,6 +78,7 @@ contract Project {
     function cancelInvestment(uint256 amount) public {
         require(amount != 0);
         require(amount <= _investments[msg.sender]);
+        require(amount == _investments[msg.sender] || (_investments[msg.sender] - amount) >= _minInvestmentPerUser);
         require(!isLockedForInvestments());
         require(_ampnet.isWalletActive(msg.sender));
 
