@@ -37,12 +37,23 @@ contract('Organization', function(accounts) {
         assert.isNotOk(organizationStatus);
     });
 
-    it("can get verified by AMPnet", async () => {
+    it("has no active wallet by default", async () => {
+        await createTestUser(bob);
+        const organization = await createTestOrganization("Greenpeace", bob);
+        const walletActive = await ampnet.isWalletActive(organization.address);
+        assert.isNotOk(walletActive, "Expected organization's wallet to be disabled by default.")
+    });
+
+    it("can get verified by AMPnet (which results in active organization wallet)", async () => {
         await createTestUser(bob);
         const organization = await createTestOrganization("Greenpeace", bob);
         await organization.activate({from: ampnetOwner});
+
         const organizationStatus = await organization.isVerified();
         assert.isOk(organizationStatus);
+
+        const walletStatus = await ampnet.isWalletActive(organization.address);
+        assert.isOk(walletStatus);
     });
 
     it("cannot get verified by anyone other than AMPnet", async () => {
@@ -161,6 +172,41 @@ contract('Organization', function(accounts) {
         await organization.activate( {from: ampnetOwner} );
         const addMember = organization.addMember(alice, { from: bob });
         await assertRevert(addMember, "Only users registered by AMPnet can become members of organizations!");
+    });
+
+    it("can receive and withdraw funds only if caller is organization admin", async () => {
+        await createTestUser(bob);
+        const organization = await createTestOrganization("Greenpeace", bob);
+        await organization.activate( {from: ampnetOwner} );
+
+        const initialOrganizationBalance = eurToToken(1000);
+        const withdrawAmount = eurToToken(500);
+        const remainingOrganizationBalance = initialOrganizationBalance - withdrawAmount;
+
+        await eur.mint(organization.address, initialOrganizationBalance, { from: eurTokenOwner });
+        await organization.withdrawFunds(eurTokenOwner, withdrawAmount, { from: bob });
+        await eur.burnFrom(organization.address, withdrawAmount, { from: eurTokenOwner });
+
+        const fetchedAmount = await eur.balanceOf(organization.address);
+        assert.strictEqual(
+            fetchedAmount.toNumber(),
+            remainingOrganizationBalance,
+            "Expected organization's balance to be reduced by withdrawn amount!"
+        );
+    });
+
+    it("fails to withdraw funds if caller not organization admin", async () => {
+        await createTestUser(bob);
+        await createTestUser(alice);
+        const organization = await createTestOrganization("Greenpeace", bob);
+        await organization.activate( {from: ampnetOwner} );
+
+        await eur.mint(organization.address, eurToToken(1000), { from: eurTokenOwner });
+        const failedWithdraw = organization.withdrawFunds(eurTokenOwner, eurToToken(500), { from: alice });
+        await assertRevert(
+            failedWithdraw,
+            "Expected withdraw action to fail when called by anyone other but organization admin!"
+        );
     });
 
     // --- HELPER FUNCTIONS --- ///

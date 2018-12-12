@@ -55,6 +55,11 @@ contract AMPnet is Ownable {
         _activeWallets[project] = true;
         emit WalletAdded(project);
     }
+
+    function addOrganizationWallet(Organization organization) public onlyVerifiedOrganization {
+        _activeWallets[organization] = true;
+        emit WalletAdded(organization);
+    }
     
     function addOrganization(
         string name
@@ -83,6 +88,16 @@ contract AMPnet is Ownable {
 
     function getEurContract() public view returns (EUR) {
         return _eur;
+    }
+
+    // ONLY FOR TESTING PURPOSES! (avoid redeploying contracts after each test-case in blockchain service)
+    // DELETE BEFOR MIGRATING CONTRACTS ON LIVENET!
+    function removeOrganizations() public onlyOwner {
+        delete _organizations;
+    }
+
+    function removeUser(address user) public onlyOwner {
+        _activeWallets[user] = false;
     }
 
 }

@@ -340,6 +340,72 @@ contract('Project', function(accounts) {
         );
     });
 
+    it("allows organization admin to withdraw funds from project, if funding cap reached", async () => {
+        await createTestUser(bob);
+        await createTestUser(alice);
+        await createTestUser(jane);
+
+        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
+
+        await eur.mint(alice, eurToToken(2500), { from: eurTokenOwner });
+        await eur.mint(jane, eurToToken(2500), { from: eurTokenOwner });
+
+        // Alice and Jane invest 2.5k EUR each, and project's 5k EUR cap should be reached
+        await eur.invest(project.address, eurToToken(2500), { from: alice });
+        await eur.invest(project.address, eurToToken(2500), { from: jane });
+
+        // Withdraw complete investment amount after cap reached
+        await project.withdrawFunds(eurTokenOwner, smallTestProject.investmentCap, { from: bob });
+        await eur.burnFrom(project.address, smallTestProject.investmentCap, { from: eurTokenOwner });
+        const fetchedBalance = await eur.balanceOf(project.address);
+        assert.strictEqual(
+            fetchedBalance.toNumber(),
+            eurToToken(0),
+            "Expected project balance to be zero after investment cap reached and funds withdrawn!"
+        );
+    });
+
+    it("should fail if trying to withdraw funds from project which is not yet completely funded", async () => {
+        await createTestUser(bob);
+        await createTestUser(alice);
+
+        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
+
+        await eur.mint(alice, eurToToken(2500), { from: eurTokenOwner });
+
+        // Alice invests 2.5k, project investment cap not reached
+        await eur.invest(project.address, eurToToken(2500), { from: alice });
+
+        const failedWithdraw = project.withdrawFunds(eurTokenOwner, eurToToken(2500), { from: bob });
+        assertRevert(
+            failedWithdraw,
+            "Expected withdraw action to fail since project investment cap not reached."
+        );
+    });
+
+    it("should fail if anyone other but organization admin tries to withdraw project funds", async () => {
+        await createTestUser(bob);
+        await createTestUser(alice);
+        await createTestUser(jane);
+
+        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
+
+        await eur.mint(alice, eurToToken(2500), { from: eurTokenOwner });
+
+        // Alice invests 5k, and caps project
+        await eur.invest(project.address, eurToToken(2500), { from: alice });
+
+        // Evil Jane tries to withdraw project funds
+        const failedWithdraw = project.withdrawFunds(eurTokenOwner, eurToToken(5000), { from: jane })
+        assertRevert(
+            failedWithdraw,
+            "Expected withdraw action to fail since caller not organization admin."
+        );
+    });
+
     // --- HELPER FUNCTIONS --- ///
 
     async function createTestUser(wallet) {

@@ -309,6 +309,38 @@ contract("EUR", function(accounts) {
         );
     });
 
+    it("allows user to withdraw funds by reserving some amount for token issuer to burn", async () => {
+        await createTestUser(bob);
+
+        const bobInitialAmount = eurToToken(1000);
+        const bobWithdrawAmount = eurToToken(500);
+        const bobRemainingAmount = bobInitialAmount - bobWithdrawAmount;
+
+
+        await eur.mint(bob, bobInitialAmount, { from: eurTokenOwner });
+        await eur.approve(eurTokenOwner, bobWithdrawAmount, { from: bob });
+        await eur.burnFrom(bob, bobWithdrawAmount, { from: eurTokenOwner });
+
+        const fetchedBalance = await eur.balanceOf(bob);
+        assert.strictEqual(
+            fetchedBalance.toNumber(),
+            bobRemainingAmount,
+            "Expected Bob's remaining balance to be decreased after burning!"
+        );
+    });
+
+    it("should fail if user tries to grant burn allowance to anyone other but token issuer", async () => {
+        await createTestUser(bob);
+        await createTestUser(alice);
+        await eur.mint(bob, eurToToken(1000), { from: eurTokenOwner });
+        const failedApproval = eur.approve(alice, eurToToken(500), { from: bob });
+        await assertRevert(
+            failedApproval,
+            "Expected approval to fail when approved party not token issuer."
+        );
+    });
+
+
     // --- HELPER FUNCTIONS --- ///
 
     async function createTestUser(wallet) {

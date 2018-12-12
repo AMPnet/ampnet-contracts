@@ -45,7 +45,7 @@ contract Organization {
 
     modifier adminOnly {
         require(
-            msg.sender == _admin,
+            isAdmin(msg.sender),
             "Illegal action. Must be organization admin!"
         );
         _;
@@ -64,6 +64,7 @@ contract Organization {
     */
     function activate() public ampnetOnly {
         _verifiedByAMPnet = true;
+        _ampnet.addOrganizationWallet(this);
     }
 
     function addProject(
@@ -101,6 +102,18 @@ contract Organization {
         _members.push(wallet);
     }
 
+    function withdrawFunds(
+        address tokenIssuer,
+        uint256 amount
+    )
+        public
+        adminOnly
+        organizationVerified
+    {
+        EUR eur = _ampnet.getEurContract();
+        eur.approve(tokenIssuer, amount);
+    }
+
     function isVerified() public view returns (bool) {
         return _verifiedByAMPnet;
     }
@@ -115,6 +128,10 @@ contract Organization {
 
     function getMembers() public view returns (address[]) {
         return _members;
+    }
+
+    function isAdmin(address user) public view returns (bool) {
+        return user == _admin;
     }
 
 }
