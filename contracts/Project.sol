@@ -2,6 +2,7 @@ pragma solidity 0.4.24;
 
 import "./Organization.sol";
 import "./AMPnet.sol";
+import "./EUR.sol";
 
 
 contract Project {
@@ -50,6 +51,22 @@ contract Project {
         _;
     }
 
+    modifier isOrganizationAdmin() {
+        require(
+            _organization.isAdmin(msg.sender),
+            "Function accessible only to organization admin!"
+        );
+        _;
+    }
+
+    modifier fundingCompleted() {
+        require(
+            _lockedForInvestments,
+            "Function accessible only when project's investment cap is reached."
+        );
+        _;
+    }
+
     /**
         Functions
     */
@@ -84,6 +101,11 @@ contract Project {
 
         _ampnet.getEurContract().transfer(msg.sender, amount);
         _investments[msg.sender] -= amount;
+    }
+
+    function withdrawFunds(address tokenIssuer, uint256 amount) public isOrganizationAdmin fundingCompleted {
+        EUR eur = _ampnet.getEurContract();
+        eur.approve(tokenIssuer, amount);
     }
 
     function getName() public view returns (string) {
