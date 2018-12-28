@@ -74,9 +74,9 @@ contract Organization {
         uint256 minInvestmentPerUser,
         uint256 investmentCap
     )
-    public
-    adminOnly
-    organizationVerified
+        public
+        adminOnly
+        organizationVerified
     {
         Project project = new Project(
             name,
