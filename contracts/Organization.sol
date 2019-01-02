@@ -1,4 +1,4 @@
-pragma solidity 0.4.24;
+pragma solidity 0.4.25;
 
 import "./Project.sol";
 import "./AMPnet.sol";
@@ -74,9 +74,9 @@ contract Organization {
         uint256 minInvestmentPerUser,
         uint256 investmentCap
     )
-    public
-    adminOnly
-    organizationVerified
+        public
+        adminOnly
+        organizationVerified
     {
         Project project = new Project(
             name,
