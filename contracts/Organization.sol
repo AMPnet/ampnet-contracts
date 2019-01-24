@@ -6,6 +6,9 @@ import "./AMPnet.sol";
 
 contract Organization {
 
+    /**
+        State vars
+    */
     address private _admin;
 
     string private _name;
@@ -18,6 +21,14 @@ contract Organization {
 
     bool private _verifiedByAMPnet = false;
 
+    /**
+        Events
+    */
+    event ProjectAdded(address indexed project);
+
+    /**
+        Init
+    */
     constructor(address admin, string name, AMPnet ampnet) public {
         _admin = admin;
         _name = name;
@@ -89,6 +100,7 @@ contract Organization {
         );
         _projects.push(project);
         _ampnet.addProjectWallet(project);
+        emit ProjectAdded(project);
     }
 
     function addMember(

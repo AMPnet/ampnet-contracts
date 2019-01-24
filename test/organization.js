@@ -6,6 +6,8 @@ const Project = artifacts.require("./Project.sol");
 const eurToToken = require('./utils/eur').eurToToken;
 const assertRevert = require('./utils/assertRevert').assertRevert;
 
+const truffleAssert = require('truffle-assertions');
+
 contract('Organization', function(accounts) {
 
     // Preloaded accounts
@@ -67,7 +69,7 @@ contract('Organization', function(accounts) {
         await createTestUser(bob);
         const organization = await createTestOrganization("Greenpeace", bob);
         await organization.activate( {from: ampnetOwner} );
-        await addTestProject(organization, bob);
+        let result = await addTestProject(organization, bob);
 
         const deployedProjects = await organization.getAllProjects();
         assert.isArray(deployedProjects, "Result not an array!");
@@ -114,6 +116,10 @@ contract('Organization', function(accounts) {
         );
 
         assert.isOk(isProjectWalletActive, "When project is created, project's EUR wallet should be active.");
+
+        truffleAssert.eventEmitted(result, 'ProjectAdded', (ev) => {
+            return ev.project === deployedProjects[0]
+        }, "Wallet creation transaction did not emit correct event!")
     });
 
     it("should fail to create project if caller is not an organization admin", async () => {
@@ -131,9 +137,9 @@ contract('Organization', function(accounts) {
         await assertRevert(addProject, "Only verified organizations can create new projects!");
     });
 
-    it(`can add new user if: 
-           user is registered by ampnet, 
-           organization is confirmed by ampnet 
+    it(`can add new user if:
+           user is registered by ampnet,
+           organization is confirmed by ampnet
            and caller is organization admin`, async () => {
         await createTestUser(bob);
         await createTestUser(alice);

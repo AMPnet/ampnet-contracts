@@ -18,12 +18,13 @@
     "url": "https://github.com/AMPnet/ampnet-contracts.git"
   },
   "dependencies": {
-    "openzeppelin-solidity": "^2.0.0"
+    "openzeppelin-solidity": "2.0.0"
   },
   "devDependencies": {
     "eth-gas-reporter": "^0.1.12",
     "solhint": "^1.4.0",
     "solidity-coverage": "^0.5.8",
+    "truffle-assertions": "^0.7.2",
     "truffle": "4.1.15"
   }
 }

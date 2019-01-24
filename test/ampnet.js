@@ -5,6 +5,8 @@ const Organization = artifacts.require("./Organization.sol");
 const getCurrentTime = require('./utils/time').getCurrentTime;
 const assertRevert = require('./utils/assertRevert').assertRevert;
 
+const truffleAssert = require('truffle-assertions');
+
 contract('AMPnet', function(accounts) {
 
     // Preloaded accounts
@@ -34,9 +36,12 @@ contract('AMPnet', function(accounts) {
     });
 
     it("can register new user if caller is AMPnet owner", async () => {
-        await ampnet.addWallet(bob, { from: ampnetOwner });
+        let result = await ampnet.addWallet(bob, { from: ampnetOwner });
         const bobWalletActive = await ampnet.isWalletActive(bob);
         assert.ok(bobWalletActive, "Bob's wallet is active!");
+        truffleAssert.eventEmitted(result, 'WalletAdded', (ev) => {
+            return ev.wallet === bob
+        }, "Wallet creation transaction did not emit correct event!")
     });
 
     it("should fail if trying to register new user when caller not AMPnet owner", async () => {
@@ -48,7 +53,7 @@ contract('AMPnet', function(accounts) {
         const organizationName = "Greenpeace";
 
         await ampnet.addWallet(bob, { from: ampnetOwner });
-        await ampnet.addOrganization(organizationName, { from: bob });
+        let result = await ampnet.addOrganization(organizationName, { from: bob });
         const organizations = await ampnet.getAllOrganizations();
 
         assert.isArray(organizations, "Result not an array!");
@@ -60,8 +65,10 @@ contract('AMPnet', function(accounts) {
             deployedOrganizationName,
             organizationName,
             "Expected deployed organization name to be `Greenpeace`."
-        )
-
+        );
+        truffleAssert.eventEmitted(result, 'OrganizationAdded', (ev) => {
+            return ev.organization === organizations[0]
+        }, "Organization creation transaction did not emit correct event!")
     });
 
     it("should signal organization does not exist if org not created by AMPnet", async () => {
