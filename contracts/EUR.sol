@@ -1,4 +1,4 @@
-pragma solidity 0.4.24;
+pragma solidity 0.4.25;
 
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol";
@@ -50,9 +50,9 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
         Project project,
         uint256 amount
     )
-    public
-    senderRegistered
-    isRegistered(project)
+        public
+        senderRegistered
+        isRegistered(project)
     {
         require(amount != 0);
         require(balanceOf(msg.sender) >= amount);
@@ -80,10 +80,10 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
         address to,
         uint256 value
     )
-    public
-    isRegistered(to)
-    senderRegistered
-    returns (bool)
+        public
+        isRegistered(to)
+        senderRegistered
+        returns (bool)
     {
         return super.transfer(to, value);
     }
@@ -92,10 +92,10 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
         address spender,
         uint256 value
     )
-    public
-    isTokenIssuer(spender)
-    senderRegistered
-    returns (bool)
+        public
+        isTokenIssuer(spender)
+        senderRegistered
+        returns (bool)
     {
         return super.approve(spender, value);
     }
@@ -105,8 +105,8 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
         address to,
         uint256 value
     )
-    public
-    returns (bool)
+        public
+        returns (bool)
     {
         revert();
     }
@@ -115,10 +115,10 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
         address spender,
         uint256 addedValue
     )
-    public
-    senderRegistered
-    isTokenIssuer(spender)
-    returns (bool)
+        public
+        senderRegistered
+        isTokenIssuer(spender)
+        returns (bool)
     {
         return super.increaseAllowance(spender, addedValue);
     }
@@ -127,10 +127,10 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
         address spender,
         uint256 subtractedValue
     )
-    public
-    senderRegistered
-    isTokenIssuer(spender)
-    returns (bool)
+        public
+        senderRegistered
+        isTokenIssuer(spender)
+        returns (bool)
     {
         return super.decreaseAllowance(spender, subtractedValue);
     }
@@ -139,10 +139,10 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
         address to,
         uint256 value
     )
-    public
-    onlyMinter
-    isRegistered(to)
-    returns (bool)
+        public
+        onlyMinter
+        isRegistered(to)
+        returns (bool)
     {
         _mint(to, value);
         return true;
