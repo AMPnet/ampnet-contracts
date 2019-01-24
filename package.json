@@ -18,7 +18,7 @@
     "url": "https://github.com/AMPnet/ampnet-contracts.git"
   },
   "dependencies": {
-    "openzeppelin-solidity": "^2.0.0"
+    "openzeppelin-solidity": "2.0.0"
   },
   "devDependencies": {
     "eth-gas-reporter": "^0.1.12",
