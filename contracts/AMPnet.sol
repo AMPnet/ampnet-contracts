@@ -18,6 +18,7 @@ contract AMPnet is Ownable {
     */
     event WalletAdded(address indexed wallet);
     event WalletRemoved(address indexed wallet);
+    event OrganizationAdded(address indexed organization);
 
     /**
         Modifiers
@@ -67,7 +68,9 @@ contract AMPnet is Ownable {
         public
         walletActive
     {
-        _organizations.push(new Organization(msg.sender, name, this));
+        Organization organization = new Organization(msg.sender, name, this);
+        _organizations.push(organization);
+        emit OrganizationAdded(organization);
     }
 
     function getAllOrganizations() public view returns (Organization[]) {

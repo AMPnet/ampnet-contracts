@@ -14,8 +14,8 @@
   "author": "ampnet.io",
   "license": "ISC",
   "repository": {
-    "type" : "git",
-    "url" : "https://github.com/AMPnet/ampnet-contracts.git"
+    "type": "git",
+    "url": "https://github.com/AMPnet/ampnet-contracts.git"
   },
   "dependencies": {
     "openzeppelin-solidity": "^2.0.0"
@@ -24,6 +24,7 @@
     "eth-gas-reporter": "^0.1.12",
     "solhint": "^1.4.0",
     "solidity-coverage": "^0.5.8",
-    "truffle": "^4.1.14"
+    "truffle": "^4.1.14",
+    "truffle-assertions": "^0.7.2"
   }
 }
