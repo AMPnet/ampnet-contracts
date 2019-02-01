@@ -50,22 +50,13 @@ contract('AMPnet', function(accounts) {
     });
 
     it("can add new organization if caller's wallet is registered by AMPnet", async () => {
-        const organizationName = "Greenpeace";
-
         await ampnet.addWallet(bob, { from: ampnetOwner });
-        let result = await ampnet.addOrganization(organizationName, { from: bob });
+        let result = await ampnet.addOrganization({ from: bob });
         const organizations = await ampnet.getAllOrganizations();
 
         assert.isArray(organizations, "Result not an array!");
         assert.strictEqual(organizations.length, 1, "Expected array of size 1.");
 
-        const organizationContract = Organization.at(organizations[0]);
-        const deployedOrganizationName = await organizationContract.getName();
-        assert.strictEqual(
-            deployedOrganizationName,
-            organizationName,
-            "Expected deployed organization name to be `Greenpeace`."
-        );
         truffleAssert.eventEmitted(result, 'OrganizationAdded', (ev) => {
             return ev.organization === organizations[0]
         }, "Organization creation transaction did not emit correct event!")
@@ -73,15 +64,14 @@ contract('AMPnet', function(accounts) {
 
     it("should signal organization does not exist if org not created by AMPnet", async () => {
         const bob = accounts[0];
-        const organization = await Organization.new(bob, "Greenpeace", ampnet.address);
+        const organization = await Organization.new(bob, ampnet.address);
         const organizationExists = await ampnet.organizationExists(organization.address);
 
         assert.notOk(organizationExists, "Organization should not exist if created by anyone other than AMPnet!");
     });
 
     it("should fail if non-registered user is trying to create organization", async () => {
-        const organizationName = "Greenpeace";
-        const addOrganization = ampnet.addOrganization(organizationName, { from: bob });
+        const addOrganization = ampnet.addOrganization({ from: bob });
         await assertRevert(addOrganization, "Not allowed to create organization as non-registered user.");
     });
 

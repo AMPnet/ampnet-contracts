@@ -34,21 +34,21 @@ contract('Organization', function(accounts) {
 
     it("is not verified by default", async () => {
         await createTestUser(bob);
-        const organization = await createTestOrganization("Greenpeace", bob);
+        const organization = await createTestOrganization(bob);
         const organizationStatus = await organization.isVerified();
         assert.isNotOk(organizationStatus);
     });
 
     it("has no active wallet by default", async () => {
         await createTestUser(bob);
-        const organization = await createTestOrganization("Greenpeace", bob);
+        const organization = await createTestOrganization(bob);
         const walletActive = await ampnet.isWalletActive(organization.address);
         assert.isNotOk(walletActive, "Expected organization's wallet to be disabled by default.")
     });
 
     it("can get verified by AMPnet (which results in active organization wallet)", async () => {
         await createTestUser(bob);
-        const organization = await createTestOrganization("Greenpeace", bob);
+        const organization = await createTestOrganization(bob);
         await organization.activate({from: ampnetOwner});
 
         const organizationStatus = await organization.isVerified();
@@ -60,14 +60,14 @@ contract('Organization', function(accounts) {
 
     it("cannot get verified by anyone other than AMPnet", async () => {
         await createTestUser(bob);
-        const organization = await createTestOrganization("Greenpeace", bob);
+        const organization = await createTestOrganization(bob);
         const activate = organization.activate( {from: bob} );
         await assertRevert(activate, "Only AMPnet can activate an organization!");
     });
 
     it("can create new project if caller is organization admin and organization is verified", async () => {
         await createTestUser(bob);
-        const organization = await createTestOrganization("Greenpeace", bob);
+        const organization = await createTestOrganization(bob);
         await organization.activate( {from: ampnetOwner} );
         let result = await addTestProject(organization, bob);
 
@@ -124,7 +124,7 @@ contract('Organization', function(accounts) {
 
     it("should fail to create project if caller is not an organization admin", async () => {
         await createTestUser(bob);
-        const organization = await createTestOrganization("Greenpeace", bob);
+        const organization = await createTestOrganization(bob);
         await organization.activate( {from: ampnetOwner} );
         const addProject = addTestProject(organization, alice);
         await assertRevert(addProject, "Only organization admin can add projects!");
@@ -132,7 +132,7 @@ contract('Organization', function(accounts) {
 
     it("should fail to create project if organization is not verified", async () => {
         await createTestUser(bob);
-        const organization = await createTestOrganization("Greenpeace", bob);
+        const organization = await createTestOrganization(bob);
         const addProject = addTestProject(organization, bob);
         await assertRevert(addProject, "Only verified organizations can create new projects!");
     });
@@ -143,7 +143,7 @@ contract('Organization', function(accounts) {
            and caller is organization admin`, async () => {
         await createTestUser(bob);
         await createTestUser(alice);
-        const organization = await createTestOrganization("Greenpeace", bob);
+        const organization = await createTestOrganization(bob);
         await organization.activate( {from: ampnetOwner} );
         await organization.addMember(alice, { from: bob });
 
@@ -158,7 +158,7 @@ contract('Organization', function(accounts) {
     it("should fail if trying to add user as organization member if caller not org admin", async () => {
         await createTestUser(bob);
         await createTestUser(alice);
-        const organization = await createTestOrganization("Greenpeace", bob);
+        const organization = await createTestOrganization(bob);
         await organization.activate( {from: ampnetOwner} );
         const addMember = organization.addMember(alice, { from: alice });
         await assertRevert(addMember, "Only organization admin can add new members!");
@@ -167,14 +167,14 @@ contract('Organization', function(accounts) {
     it("should fail if trying to add user as organization member but org not verified", async () => {
         await createTestUser(bob);
         await createTestUser(alice);
-        const organization = await createTestOrganization("Greenpeace", bob);
+        const organization = await createTestOrganization(bob);
         const addMember = organization.addMember(bob, { from: alice });
         await assertRevert(addMember, "Only verified organizations can accept new members!");
     });
 
     it("should fail if trying to add user as organization member but user not registered by AMPnet", async () => {
         await createTestUser(bob);
-        const organization = await createTestOrganization("Greenpeace", bob);
+        const organization = await createTestOrganization(bob);
         await organization.activate( {from: ampnetOwner} );
         const addMember = organization.addMember(alice, { from: bob });
         await assertRevert(addMember, "Only users registered by AMPnet can become members of organizations!");
@@ -182,7 +182,7 @@ contract('Organization', function(accounts) {
 
     it("can receive and withdraw funds only if caller is organization admin", async () => {
         await createTestUser(bob);
-        const organization = await createTestOrganization("Greenpeace", bob);
+        const organization = await createTestOrganization(bob);
         await organization.activate( {from: ampnetOwner} );
 
         const initialOrganizationBalance = eurToToken(1000);
@@ -204,7 +204,7 @@ contract('Organization', function(accounts) {
     it("fails to withdraw funds if caller not organization admin", async () => {
         await createTestUser(bob);
         await createTestUser(alice);
-        const organization = await createTestOrganization("Greenpeace", bob);
+        const organization = await createTestOrganization(bob);
         await organization.activate( {from: ampnetOwner} );
 
         await eur.mint(organization.address, eurToToken(1000), { from: eurTokenOwner });
@@ -221,8 +221,8 @@ contract('Organization', function(accounts) {
         await ampnet.addWallet(wallet, {from: ampnetOwner});
     }
 
-    async function createTestOrganization(name, admin) {
-        await ampnet.addOrganization(name, {from: admin});
+    async function createTestOrganization(admin) {
+        await ampnet.addOrganization({from: admin});
         const organizations = await ampnet.getAllOrganizations();
         return Organization.at(organizations[0]);
     }
