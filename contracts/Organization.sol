@@ -11,8 +11,6 @@ contract Organization {
     */
     address private _admin;
 
-    string private _name;
-
     address[] private _members;
 
     Project[] private _projects;
@@ -29,9 +27,8 @@ contract Organization {
     /**
         Init
     */
-    constructor(address admin, string name, AMPnet ampnet) public {
+    constructor(address admin, AMPnet ampnet) public {
         _admin = admin;
-        _name = name;
         _ampnet = ampnet;
     }
 
@@ -128,10 +125,6 @@ contract Organization {
 
     function isVerified() public view returns (bool) {
         return _verifiedByAMPnet;
-    }
-
-    function getName() public view returns (string) {
-        return _name;
     }
 
     function getAllProjects() public view returns (Project[]) {

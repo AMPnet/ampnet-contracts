@@ -93,7 +93,7 @@ contract("EUR", function(accounts) {
 
     it("can process new investment into specific project registered on AMPnet platform", async () => {
         await createTestUser(bob);
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, testProject);
         await createTestUser(alice);
 
@@ -122,7 +122,7 @@ contract("EUR", function(accounts) {
 
     it("should fail if user trying to invest in project not registered by AMPnet", async () => {
         await createTestUser(bob);
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await Project.new( // create Project but not through AMPnet
             testProject.name,
             testProject.description,
@@ -139,7 +139,7 @@ contract("EUR", function(accounts) {
 
     it("should fail if user trying to invest in project but user not registered in AMPnet contract", async () => {
         await createTestUser(bob);
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, testProject);
         const failedInvest = eur.invest(project.address, eurToToken(1000), { from: alice });
         await assertRevert(failedInvest, "Only registered users can invest in AMPnet projects!");
@@ -148,7 +148,7 @@ contract("EUR", function(accounts) {
     it("should fail if user investing 0 tokens", async () => {
         await createTestUser(bob);
         await eur.mint(bob, eurToToken(2000), { from: eurTokenOwner });
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, testProject);
         const failedInvest = eur.invest(project.address, eurToToken(0), { from: bob });
         await assertRevert(failedInvest, "Can't invest 0 tokens!");
@@ -157,7 +157,7 @@ contract("EUR", function(accounts) {
     it("should fail if user investing more than available on account balance", async () => {
         await createTestUser(bob);
         await eur.mint(bob, eurToToken(2000), { from: eurTokenOwner });
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, testProject);
         const failedInvest = eur.invest(project.address, eurToToken(3000), { from: bob });
         await assertRevert(failedInvest, "Can't invest more tokens than actually owned!");
@@ -166,7 +166,7 @@ contract("EUR", function(accounts) {
     it("should fail if user investing more than project's per-user max investment limit", async () => {
         await createTestUser(bob);
         await eur.mint(bob, eurToToken(20000), { from: eurTokenOwner });
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, testProject);
         const failedInvest = eur.invest(project.address, eurToToken(10001), { from: bob });
         await assertRevert(failedInvest, "Can't invest more than project's per-user maximum!");
@@ -175,7 +175,7 @@ contract("EUR", function(accounts) {
     it("should fail if user investing less than project's per-user min investment limit", async () => {
         await createTestUser(bob);
         await eur.mint(bob, eurToToken(2000), { from: eurTokenOwner });
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, testProject);
         const failedInvest = eur.invest(project.address, eurToToken(999), { from: bob });
         await assertRevert(failedInvest, "Can't invest less than project's per-user minimum!");
@@ -188,7 +188,7 @@ contract("EUR", function(accounts) {
         await eur.mint(bob, eurToToken(5000), { from: eurTokenOwner });
         await eur.mint(alice, eurToToken(5000), { from: eurTokenOwner });
 
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, smallTestProject);
 
         // Alice invests 3k EUR
@@ -209,7 +209,7 @@ contract("EUR", function(accounts) {
         const bobRemainingBalance = bobStartingBalance - bobFirstInvestment - bobSecondInvestment;
 
         await eur.mint(bob, bobStartingBalance, { from: eurTokenOwner });
-        const organization = await createAndActivateTestOrganization("Greenpeace", alice);
+        const organization = await createAndActivateTestOrganization(alice);
         const project = await addTestProject(organization, alice, smallTestProject);
 
         await eur.invest(project.address, bobFirstInvestment, { from: bob });
@@ -347,8 +347,8 @@ contract("EUR", function(accounts) {
         await ampnet.addWallet(wallet, { from: ampnetOwner });
     }
 
-    async function createAndActivateTestOrganization(name, admin) {
-        await ampnet.addOrganization(name, { from: admin });
+    async function createAndActivateTestOrganization(admin) {
+        await ampnet.addOrganization({ from: admin });
         const organizations = await ampnet.getAllOrganizations();
         const organization = Organization.at(organizations[0]);
         await organization.activate( {from: ampnetOwner });

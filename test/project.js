@@ -34,7 +34,7 @@ contract('Project', function(accounts) {
 
     it("is open for investments by default", async () => {
         await createTestUser(bob);
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, testProject);
         const openForInvestments = !(await project.isLockedForInvestments());
         assert.ok(openForInvestments, "Expected project to be open for investments by default!");
@@ -42,7 +42,7 @@ contract('Project', function(accounts) {
 
     it("has an active EUR wallet for receiving investments", async () => {
         await createTestUser(bob);
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, testProject);
         const walletActive = await ampnet.isWalletActive(project.address);
         assert.ok(walletActive, "Expected project's EUR wallet to be active!");
@@ -51,7 +51,7 @@ contract('Project', function(accounts) {
     it("can accept new user investment", async () => {
         await createTestUser(bob);
         await createTestUser(alice);
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, testProject);
 
         const aliceInitialBalance = eurToToken(1000);
@@ -79,7 +79,7 @@ contract('Project', function(accounts) {
     it("allows user to cancel complete investment if project not locked", async () => {
         await createTestUser(bob);
         await createTestUser(alice);
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, testProject);
 
         const aliceBalance = eurToToken(1000);
@@ -105,7 +105,7 @@ contract('Project', function(accounts) {
     it("allows user to cancel portion of investment, if remaining part is still greater than or equal to min per-user investment", async () => {
         await createTestUser(bob);
         await createTestUser(alice);
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, testProject);
 
         const aliceBalance = eurToToken(1100);
@@ -138,7 +138,7 @@ contract('Project', function(accounts) {
         await createTestUser(bob);
         await createTestUser(alice);
 
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, testProject);
 
         await eur.mint(alice, eurToToken(1000), { from: eurTokenOwner }); // 1k EUR is min investment for testProject
@@ -156,7 +156,7 @@ contract('Project', function(accounts) {
         await createTestUser(bob);
         await createTestUser(alice);
 
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, testProject);
 
         await eur.mint(alice, eurToToken(1100), { from: eurTokenOwner }); // 1k EUR is min investment for testProject
@@ -173,7 +173,7 @@ contract('Project', function(accounts) {
         await createTestUser(bob);
         await createTestUser(alice);
 
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, testProject);
 
         await eur.mint(alice, eurToToken(1100), { from: eurTokenOwner }); // 1k EUR is min investment for testProject
@@ -191,7 +191,7 @@ contract('Project', function(accounts) {
         await createTestUser(alice);
         await createTestUser(jane);
 
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
 
         await eur.mint(alice, eurToToken(2500), { from: eurTokenOwner });
@@ -210,7 +210,7 @@ contract('Project', function(accounts) {
         await createTestUser(alice);
         await createTestUser(jane);
 
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
 
         await eur.mint(alice, eurToToken(5000), { from: eurTokenOwner });
@@ -231,7 +231,7 @@ contract('Project', function(accounts) {
         await createTestUser(bob);
         await createTestUser(alice);
 
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
 
         await eur.mint(alice, eurToToken(5000), { from: eurTokenOwner });
@@ -254,7 +254,7 @@ contract('Project', function(accounts) {
         await createTestUser(alice);
         await createTestUser(jane);
 
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
 
         const aliceInitialInvestment = eurToToken(5000);
@@ -290,7 +290,7 @@ contract('Project', function(accounts) {
         await createTestUser(alice);
         await createTestUser(jane);
 
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
 
         await eur.mint(alice, eurToToken(5000), { from: eurTokenOwner });
@@ -308,7 +308,7 @@ contract('Project', function(accounts) {
         await createTestUser(alice);
         await createTestUser(jane);
 
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
 
         await eur.mint(alice, eurToToken(5000), { from: eurTokenOwner });
@@ -326,7 +326,7 @@ contract('Project', function(accounts) {
         await createTestUser(bob);
         await createTestUser(alice);
 
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
 
         await eur.mint(alice, eurToToken(5000), { from: eurTokenOwner });
@@ -345,7 +345,7 @@ contract('Project', function(accounts) {
         await createTestUser(alice);
         await createTestUser(jane);
 
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
 
         await eur.mint(alice, eurToToken(2500), { from: eurTokenOwner });
@@ -370,7 +370,7 @@ contract('Project', function(accounts) {
         await createTestUser(bob);
         await createTestUser(alice);
 
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
 
         await eur.mint(alice, eurToToken(2500), { from: eurTokenOwner });
@@ -390,7 +390,7 @@ contract('Project', function(accounts) {
         await createTestUser(alice);
         await createTestUser(jane);
 
-        const organization = await createAndActivateTestOrganization("Greenpeace", bob);
+        const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
 
         await eur.mint(alice, eurToToken(2500), { from: eurTokenOwner });
@@ -412,8 +412,8 @@ contract('Project', function(accounts) {
         await ampnet.addWallet(wallet, { from: ampnetOwner });
     }
 
-    async function createAndActivateTestOrganization(name, admin) {
-        await ampnet.addOrganization(name, { from: admin });
+    async function createAndActivateTestOrganization(admin) {
+        await ampnet.addOrganization({ from: admin });
         const organizations = await ampnet.getAllOrganizations();
         const organization = Organization.at(organizations[0]);
         await organization.activate( {from: ampnetOwner });

@@ -62,13 +62,11 @@ contract AMPnet is Ownable {
         emit WalletAdded(organization);
     }
     
-    function addOrganization(
-        string name
-    )
+    function addOrganization()
         public
         walletActive
     {
-        Organization organization = new Organization(msg.sender, name, this);
+        Organization organization = new Organization(msg.sender, this);
         _organizations.push(organization);
         emit OrganizationAdded(organization);
     }
