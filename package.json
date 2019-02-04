@@ -8,7 +8,7 @@
   },
   "scripts": {
     "lint": "solhint \"contracts/**/*.sol\"",
-    "test": "truffle test",
+    "test": "truffle test --network test",
     "coverage": "solidity-coverage"
   },
   "author": "ampnet.io",

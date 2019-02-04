@@ -4,6 +4,7 @@ jobs:
     docker:
       - image: circleci/node:latest
       - image: trufflesuite/ganache-cli:latest
+        command: [ --port=8546 ]
     steps:
       - checkout
       - run:
