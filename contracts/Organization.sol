@@ -76,8 +76,6 @@ contract Organization {
     }
 
     function addProject(
-        string name,
-        string description,
         uint256 maxInvestmentPerUser,
         uint256 minInvestmentPerUser,
         uint256 investmentCap
@@ -87,8 +85,6 @@ contract Organization {
         organizationVerified
     {
         Project project = new Project(
-            name,
-            description,
             maxInvestmentPerUser,
             minInvestmentPerUser,
             investmentCap,

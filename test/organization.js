@@ -77,25 +77,11 @@ contract('Organization', function(accounts) {
 
         const deployedProject = Project.at(deployedProjects[0]);
 
-        const actualName                    = await deployedProject.getName();
-        const actualDescription             = await deployedProject.getDescription();
         const actualMaxInvestmentPerUser    = await deployedProject.getMaxInvestmentPerUser();
         const actualMinInvestmentPerUser    = await deployedProject.getMinInvestmentPerUser();
         const actualInvestmentCap           = await deployedProject.getInvestmentCap();
 
         const isProjectWalletActive = await ampnet.isWalletActive(deployedProject.address);
-
-        assert.strictEqual(
-            actualName,
-            testProject.name,
-            "Deployed project name different from expected."
-        );
-
-        assert.strictEqual(
-            actualDescription,
-            testProject.description,
-            "Deployed project description different from expected."
-        );
 
         assert.strictEqual(
             actualMaxInvestmentPerUser.toNumber(),
@@ -229,8 +215,6 @@ contract('Organization', function(accounts) {
 
     async function addTestProject(organization, creatorWallet) {
         return organization.addProject(
-            testProject.name,               // project name
-            testProject.description,        // project description
             testProject.maxInvestment,      // max investment per user (10k EUR)
             testProject.minInvestment,      // min investment per user (1k EUR)
             testProject.investmentCap,      // investment cap (10M EUR)
@@ -241,8 +225,6 @@ contract('Organization', function(accounts) {
     // --- TEST DATA --- ///
 
     const testProject = {
-        name: "VE Lukovac",
-        description: "Najbolja vjetroelektrana ikad",
         maxInvestment: eurToToken(10000),
         minInvestment: eurToToken(1000),
         investmentCap: eurToToken(10000000)
