@@ -124,8 +124,6 @@ contract("EUR", function(accounts) {
         await createTestUser(bob);
         const organization = await createAndActivateTestOrganization(bob);
         const project = await Project.new( // create Project but not through AMPnet
-            testProject.name,
-            testProject.description,
             testProject.maxInvestment,
             testProject.minInvestment,
             testProject.investmentCap,
@@ -357,8 +355,6 @@ contract("EUR", function(accounts) {
 
     async function addTestProject(organization, creatorWallet, project) {
         await organization.addProject(
-            project.name,               // project name
-            project.description,        // project description
             project.maxInvestment,      // max investment per user (10k EUR)
             project.minInvestment,      // min investment per user (1k EUR)
             project.investmentCap,      // investment cap (10M EUR)
@@ -371,16 +367,12 @@ contract("EUR", function(accounts) {
     // --- TEST DATA --- ///
 
     const testProject = {
-        name: "VE Lukovac",
-        description: "Najbolja vjetroelektrana ikad",
         maxInvestment: eurToToken(10000),
         minInvestment: eurToToken(1000),
         investmentCap: eurToToken(10000000)
     };
 
     const smallTestProject = {
-        name: "Small project",
-        description: "Low investments",
         maxInvestment: eurToToken(3000),
         minInvestment: eurToToken(1000),
         investmentCap: eurToToken(5000)

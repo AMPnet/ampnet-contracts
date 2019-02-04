@@ -7,9 +7,6 @@ import "./EUR.sol";
 
 contract Project {
 
-    string private _name;
-    string private _description;
-
     uint256 private _maxInvestmentPerUser;
     uint256 private _minInvestmentPerUser;
     uint256 private _investmentCap;
@@ -23,16 +20,12 @@ contract Project {
     AMPnet private _ampnet;
 
     constructor(
-        string name,
-        string description,
         uint256 maxInvestmentPerUser,
         uint256 minInvestmentPerUser,
         uint256 investmentCap,
         Organization organization,
         AMPnet ampnet
     ) public {
-        _name = name;
-        _description = description;
         _maxInvestmentPerUser = maxInvestmentPerUser;
         _minInvestmentPerUser = minInvestmentPerUser;
         _investmentCap = investmentCap;
@@ -106,14 +99,6 @@ contract Project {
     function withdrawFunds(address tokenIssuer, uint256 amount) public isOrganizationAdmin fundingCompleted {
         EUR eur = _ampnet.getEurContract();
         eur.approve(tokenIssuer, amount);
-    }
-
-    function getName() public view returns (string) {
-        return _name;
-    }
-
-    function getDescription() public view returns (string) {
-        return _description;
     }
 
     function getMaxInvestmentPerUser() public view returns (uint256) {
