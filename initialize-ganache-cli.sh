@@ -1,6 +1,7 @@
 #!/bin/bash
 
 docker run -d -p 8545:8545 --name ampnet-ganache trufflesuite/ganache-cli:latest \
+            --db \
             --verbose \
             --account="0x4843d7e2658482c2cab8cf79576e4112d156fd87dda1e08468b51fe34fd08569, 1000000000000000000000000" \
             --account="0xc0c85e6b373d090048676f0c82542cb3bb6793491450f478b147614262718cdd, 1000000000000000000000000" \
