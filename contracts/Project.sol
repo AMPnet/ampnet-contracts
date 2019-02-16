@@ -7,30 +7,35 @@ import "./EUR.sol";
 
 contract Project {
 
-    uint256 private _maxInvestmentPerUser;
-    uint256 private _minInvestmentPerUser;
-    uint256 private _investmentCap;
+    uint256 public maxPerUserInvestment;
+    uint256 public minPerUserInvestment;
+    uint256 public investmentCap;
 
-    bool private _lockedForInvestments = false;
+    bool public fundingCompleted = false;
 
-    mapping (address => uint256) private _investments;
+    mapping (address => uint256) private investments;
+    address[] private investors;
 
-    Organization private _organization; // every project investment belongs to one organization
+    Organization private organization;
+    AMPnet private ampnet;
+    ERC20 private token;
 
-    AMPnet private _ampnet;
+    event RevenueShareMinted(address indexed wallet, uint256 amount);
 
     constructor(
-        uint256 maxInvestmentPerUser,
-        uint256 minInvestmentPerUser,
-        uint256 investmentCap,
-        Organization organization,
-        AMPnet ampnet
+        uint256 _maxInvestmentPerUser,
+        uint256 _minInvestmentPerUser,
+        uint256 _investmentCap,
+        Organization _organization,
+        AMPnet _ampnet,
+        ERC20 _token
     ) public {
-        _maxInvestmentPerUser = maxInvestmentPerUser;
-        _minInvestmentPerUser = minInvestmentPerUser;
-        _investmentCap = investmentCap;
-        _organization = organization;
-        _ampnet = ampnet;
+        maxInvestmentPerUser = _maxInvestmentPerUser;
+        minInvestmentPerUser = _minInvestmentPerUser;
+        investmentCap = _investmentCap;
+        organization = _organization;
+        ampnet = _ampnet;
+        token = _token;
     }
 
     /**
@@ -65,7 +70,9 @@ contract Project {
     */
     function addNewUserInvestment(address user, uint256 amount) public isEurContract {
         _investments[user] += amount;
-
+        if (!isInvestor(user)) {
+            _investors.push(user);
+        }
         if (getCurrentTotalInvestment() == _investmentCap) {
             _lockedForInvestments = true;
         }
@@ -123,6 +130,46 @@ contract Project {
 
     function isLockedForInvestments() public view returns (bool) {
         return _lockedForInvestments;
+    }
+
+    function getInvestors() public view returns (address[]) {
+        return _investors;
+    }
+
+    function isInvestor(address wallet) private view returns (bool) {
+        uint count = _investors.length;
+        for (uint i=0; i < count; i++) {
+            if (_investors[i] == wallet) return true;
+        }
+        return false;
+    }
+
+    function payoutRevenueSharesBatch() private {
+        uint256 investmentCap = getCurrentTotalInvestment();
+        address[] memory investors = lastRevenueProject.getInvestors();
+
+        uint numOfInvestors = investors.length;
+
+        uint lastInvestorIndex = numOfInvestors - 1;
+        uint lastBatchIndex = nextInvestorIndexToPayout + REVENUE_MINT_BATCH_SIZE - 1;
+
+        uint upperLimit = (lastInvestorIndex < lastBatchIndex) ? lastInvestorIndex : lastBatchIndex;
+
+        for (uint i = nextInvestorIndexToPayout; i <= upperLimit; i++) {
+            address investor = investors[i];
+            uint256 investment = lastRevenueProject.getTotalInvestmentForUser(investors[i]);
+            uint256 share = lastRevenueAmount * investment / investmentCap;
+
+            _mint(investor, share);
+
+            emit RevenueShareMinted(investor, share);
+        }
+
+        if (upperLimit == lastInvestorIndex) {
+            revenueSharePayoutInProgress = false;
+        } else {
+            nextInvestorIndexToPayout = upperLimit + 1;
+        }
     }
 
 }

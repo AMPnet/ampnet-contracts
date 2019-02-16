@@ -12,9 +12,22 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
 
     AMPnet private _ampnet;
 
+    bool private revenueSharePayoutInProgress = false;
+
+    Project private lastRevenueProject;
+    uint256 private lastRevenueAmount;
+    uint private nextInvestorIndexToPayout;
+
+    uint constant private REVENUE_MINT_BATCH_SIZE = 1;
+
     constructor(AMPnet ampnet) public {
         _ampnet = ampnet;
     }
+
+    /**
+        Events
+    */
+    event RevenueShareMinted(address indexed wallet, uint256 amount);
 
     /**
         Modifiers
@@ -70,6 +83,28 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
 
         transfer(project, amount);
         project.addNewUserInvestment(msg.sender, amount);
+    }
+
+    /**
+        Revenue share payout logic
+    */
+    function mintRevenue(
+        Project project,
+        uint256 revenue
+    )
+        public
+        onlyMinter
+    {
+        if (revenueSharePayoutInProgress) {
+            require(project == lastRevenueProject, "Revenue share payout in progress but wrong project provided!");
+            require(revenue == lastRevenueAmount, "Revenue share payout in progress but wrong revenue provided!");
+        } else {
+            revenueSharePayoutInProgress = true;
+            lastRevenueProject = project;
+            lastRevenueAmount = revenue;
+            nextInvestorIndexToPayout = 0;
+        }
+        payoutRevenueSharesBatch();
     }
 
     /**
@@ -152,6 +187,37 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
 
     function burnFrom(address from, uint256 value) public {
         _burnFrom(from, value);
+    }
+
+    /**
+        HELPER FUNCTIONS
+    */
+    function payoutRevenueSharesBatch() private {
+        uint256 investmentCap = lastRevenueProject.getCurrentTotalInvestment();
+        address[] memory investors = lastRevenueProject.getInvestors();
+
+        uint numOfInvestors = investors.length;
+
+        uint lastInvestorIndex = numOfInvestors - 1;
+        uint lastBatchIndex = nextInvestorIndexToPayout + REVENUE_MINT_BATCH_SIZE - 1;
+
+        uint upperLimit = (lastInvestorIndex < lastBatchIndex) ? lastInvestorIndex : lastBatchIndex;
+
+        for (uint i = nextInvestorIndexToPayout; i <= upperLimit; i++) {
+            address investor = investors[i];
+            uint256 investment = lastRevenueProject.getTotalInvestmentForUser(investors[i]);
+            uint256 share = lastRevenueAmount * investment / investmentCap;
+
+            _mint(investor, share);
+
+            emit RevenueShareMinted(investor, share);
+        }
+
+        if (upperLimit == lastInvestorIndex) {
+            revenueSharePayoutInProgress = false;
+        } else {
+            nextInvestorIndexToPayout = upperLimit + 1;
+        }
     }
 
 }
