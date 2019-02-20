@@ -1,17 +1,18 @@
-const AMPnet = artifacts.require("./AMPnet.sol");
+const Cooperative = artifacts.require("./Cooperative.sol");
 const EUR = artifacts.require("./EUR.sol");
 const Organization = artifacts.require("./Organization.sol");
 const Project = artifacts.require("./Project.sol");
 
 const eurToToken = require('./utils/eur').eurToToken;
 const tokenToEur = require('./utils/eur').tokenToEur;
+const truffleAssert = require('truffle-assertions');
 const assertRevert = require('./utils/assertRevert').assertRevert;
 
 contract('Project', function(accounts) {
 
     // Preloaded accounts
 
-    const ampnetOwner = accounts[0];
+    const coopOwner = accounts[0];
     const eurTokenOwner = accounts[1];
     const bob = accounts[2];
     const alice = accounts[3];
@@ -19,15 +20,15 @@ contract('Project', function(accounts) {
 
     // Reference to deployed contracts
 
-    var ampnet;
+    var coop;
     var eur;
 
     // Redeploy for each test (clean state)
 
     beforeEach(async () => {
-        ampnet = await AMPnet.new({from: ampnetOwner});       // deploy AMPnet with ampnetOwner account
-        eur = await EUR.new(ampnet.address, {from: eurTokenOwner});   // deploy EUR token with eurTokenOwner as minter
-        await ampnet.setEur(eur.address, {from: ampnetOwner});        // save EUR token address in AMPnet contract
+        coop = await Cooperative.new({ from: coopOwner });          // deploy Cooperative with coopOwner account
+        eur = await EUR.new(coop.address, { from: eurTokenOwner }); // deploy EUR token with eurTokenOwner as minter
+        await coop.setToken(eur.address, { from: coopOwner });    // save EUR token address in Cooperative contract
     });
 
     // --- TEST CASES ---- //
@@ -36,7 +37,7 @@ contract('Project', function(accounts) {
         await createTestUser(bob);
         const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, testProject);
-        const openForInvestments = !(await project.isLockedForInvestments());
+        const openForInvestments = !(await project.isCompletelyFunded());
         assert.ok(openForInvestments, "Expected project to be open for investments by default!");
     });
 
@@ -44,7 +45,7 @@ contract('Project', function(accounts) {
         await createTestUser(bob);
         const organization = await createAndActivateTestOrganization(bob);
         const project = await addTestProject(organization, bob, testProject);
-        const walletActive = await ampnet.isWalletActive(project.address);
+        const walletActive = await coop.isWalletActive(project.address);
         assert.ok(walletActive, "Expected project's EUR wallet to be active!");
     });
 
@@ -58,8 +59,10 @@ contract('Project', function(accounts) {
         const aliceInvestment = eurToToken(1000);
         const aliceFinalBalance = aliceInitialBalance - aliceInvestment;
 
+        // Deposit and invest in project
         await eur.mint(alice, aliceInitialBalance, { from: eurTokenOwner });
-        await eur.invest(project.address, aliceInvestment, { from: alice });
+        await eur.approve(project.address, aliceInvestment, { from: alice });
+        const result = await project.invest({ from: alice });
 
         const fetchedAliceBalance = await eur.balanceOf(alice);
         assert.strictEqual(
@@ -68,122 +71,16 @@ contract('Project', function(accounts) {
             "Alice balance expected to be zero!"
         );
 
-        const fetchedAliceInvestment = await project.getTotalInvestmentForUser(alice);
+        const fetchedAliceInvestment = await project.investments(alice);
         assert.strictEqual(
             fetchedAliceInvestment.toNumber(),
             aliceInvestment,
             "Alice investment expected to be 1k EUR!"
         );
-    });
 
-    it("allows user to cancel complete investment if project not locked", async () => {
-        await createTestUser(bob);
-        await createTestUser(alice);
-        const organization = await createAndActivateTestOrganization(bob);
-        const project = await addTestProject(organization, bob, testProject);
-
-        const aliceBalance = eurToToken(1000);
-        await eur.mint(alice, aliceBalance, { from: eurTokenOwner });
-        await eur.invest(project.address, aliceBalance, { from: alice });
-        await project.cancelInvestment(aliceBalance, { from: alice });
-
-        const fetchedAliceBalance = await eur.balanceOf(alice);
-        assert.strictEqual(
-            fetchedAliceBalance.toNumber(),
-            aliceBalance,
-            "Expected alice balance to be equal to initial, as she cancelled full investment."
-        );
-
-        const fetchedAliceInvestment = await project.getTotalInvestmentForUser(alice);
-        assert.strictEqual(
-            fetchedAliceInvestment.toNumber(),
-            0,
-            "Expected alice's project to be zero, as she cancelled full investment."
-        );
-    });
-
-    it("allows user to cancel portion of investment, if remaining part is still greater than or equal to min per-user investment", async () => {
-        await createTestUser(bob);
-        await createTestUser(alice);
-        const organization = await createAndActivateTestOrganization(bob);
-        const project = await addTestProject(organization, bob, testProject);
-
-        const aliceBalance = eurToToken(1100);
-        const aliceInitialInvestment = eurToToken(1100);
-        const aliceCancelledPortion = eurToToken(100);
-        const aliceRemainingInvestment = aliceInitialInvestment - aliceCancelledPortion;
-        const aliceRemainingBalance = aliceBalance - aliceInitialInvestment + aliceCancelledPortion;
-
-        await eur.mint(alice, aliceBalance, { from: eurTokenOwner });
-        await eur.invest(project.address, aliceInitialInvestment, { from: alice });
-        await project.cancelInvestment(aliceCancelledPortion, { from: alice });
-
-        const fetchedAliceBalance = await eur.balanceOf(alice);
-        const fetchedAliceInvestment = await project.getTotalInvestmentForUser(alice);
-
-        assert.strictEqual(
-            fetchedAliceBalance.toNumber(),
-            aliceRemainingBalance,
-            "Expected alice's balance to be equal to cancelled portion of investment."
-        );
-
-        assert.strictEqual(
-            fetchedAliceInvestment.toNumber(),
-            aliceRemainingInvestment,
-            "Expected alice's remaining investment to be equal to initial investment reduced by cancelled amount."
-        );
-    });
-
-    it("should fail if user cancels portion of investment and remaining part is smaller than min per-user investment", async () => {
-        await createTestUser(bob);
-        await createTestUser(alice);
-
-        const organization = await createAndActivateTestOrganization(bob);
-        const project = await addTestProject(organization, bob, testProject);
-
-        await eur.mint(alice, eurToToken(1000), { from: eurTokenOwner }); // 1k EUR is min investment for testProject
-        await eur.invest(project.address, eurToToken(1000), { from: alice });
-
-        const failedCancel = project.cancelInvestment(eurToToken(100), { from: alice });
-        await assertRevert(
-            failedCancel,
-            "If portion of investment cancelled, remaining part must be at least equal to min per-user investment"
-        );
-
-    });
-
-    it("should fail if user tries to cancel 0 tokens of investment", async () => {
-        await createTestUser(bob);
-        await createTestUser(alice);
-
-        const organization = await createAndActivateTestOrganization(bob);
-        const project = await addTestProject(organization, bob, testProject);
-
-        await eur.mint(alice, eurToToken(1100), { from: eurTokenOwner }); // 1k EUR is min investment for testProject
-        await eur.invest(project.address, eurToToken(1100), { from: alice });
-
-        const failedCancel = project.cancelInvestment(eurToToken(0), { from: alice });
-        await assertRevert(
-            failedCancel,
-            "Cannot cancel 0 tokens of investment!"
-        );
-    });
-
-    it("should fail if user tries to cancel more than actually invested", async () => {
-        await createTestUser(bob);
-        await createTestUser(alice);
-
-        const organization = await createAndActivateTestOrganization(bob);
-        const project = await addTestProject(organization, bob, testProject);
-
-        await eur.mint(alice, eurToToken(1100), { from: eurTokenOwner }); // 1k EUR is min investment for testProject
-        await eur.invest(project.address, eurToToken(1100), { from: alice });
-
-        const failedCancel = project.cancelInvestment(eurToToken(1500), { from: alice });
-        await assertRevert(
-            failedCancel,
-            "Cannot cancel more than actually invested!"
-        );
+        truffleAssert.eventEmitted(result, 'NewUserInvestment', (ev) => {
+            return ev.investor === alice && ev.amount.eq(aliceInvestment)
+        }, "Invest transaction did not emit correct event!");
     });
 
     it("locks for investment after investment cap has been reached", async () => {
@@ -198,10 +95,12 @@ contract('Project', function(accounts) {
         await eur.mint(jane, eurToToken(2500), { from: eurTokenOwner });
 
         // Alice and Jane invest 2.5k EUR each, and project's 5k EUR cap should be reached
-        await eur.invest(project.address, eurToToken(2500), { from: alice });
-        await eur.invest(project.address, eurToToken(2500), { from: jane });
+        await eur.approve(project.address, eurToToken(2500), { from: alice });
+        await project.invest({ from: alice });
+        await eur.approve(project.address, eurToToken(2500), { from: jane });
+        await project.invest({ from: jane });
 
-        const isLockedForInvestments = await project.isLockedForInvestments();
+        const isLockedForInvestments = await project.isCompletelyFunded();
         assert.isOk(isLockedForInvestments, "Project should be locked for investments when cap is reached");
     });
 
@@ -217,126 +116,15 @@ contract('Project', function(accounts) {
         await eur.mint(jane, eurToToken(1000), { from: eurTokenOwner });
 
         // Alice invests 5k EUR and caps project
-        await eur.invest(project.address, eurToToken(5000), { from: alice });
+        await eur.approve(project.address, eurToToken(5000), { from: alice });
+        await project.invest({ from: alice });
 
         // Jane tries to invest more but should fail because cap reached
-        const failedInvest = eur.invest(project.address, eurToToken(1000), { from: jane });
+        await eur.approve(project.address, eurToToken(1000), { from: jane });
+        const failedInvest = project.invest({ from: jane });
         await assertRevert(
             failedInvest,
             "User cannot invest in projects that reached their investment cap"
-        );
-    });
-
-    it("should fail if user tries to cancel investment from locked project", async () => {
-        await createTestUser(bob);
-        await createTestUser(alice);
-
-        const organization = await createAndActivateTestOrganization(bob);
-        const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
-
-        await eur.mint(alice, eurToToken(5000), { from: eurTokenOwner });
-
-        // Alice invests 5k EUR and caps project (project is locked)
-        await eur.invest(project.address, eurToToken(5000), { from: alice });
-
-        // Alice tries to cancel portion of investment even though project has been locked (should fail)
-        const failedCancel = project.cancelInvestment(eurToToken(1000), { from: alice });
-
-        await assertRevert(
-            failedCancel,
-            "User cannot cancel investment if project has been locked"
-        );
-    });
-
-
-    it("can process ownership transfer from one account to another", async () => {
-        await createTestUser(bob);
-        await createTestUser(alice);
-        await createTestUser(jane);
-
-        const organization = await createAndActivateTestOrganization(bob);
-        const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
-
-        const aliceInitialInvestment = eurToToken(5000);
-        const janeInitialInvestment = eurToToken(0);
-        const aliceToJaneTransferAmount = eurToToken(5000);
-        const aliceFinalInvestment = aliceInitialInvestment - aliceToJaneTransferAmount;
-        const janeFinalInvestment = janeInitialInvestment + aliceToJaneTransferAmount;
-
-        // Alice invests 5k EUR and caps project (project is locked)
-        await eur.mint(alice, aliceInitialInvestment, { from: eurTokenOwner });
-        await eur.invest(project.address, aliceInitialInvestment, { from: alice });
-
-        await project.transferOwnership(jane, aliceToJaneTransferAmount, { from: alice });
-
-        const aliceFetchedInvestment = await project.getTotalInvestmentForUser(alice);
-        const janeFetchedInvestment = await project.getTotalInvestmentForUser(jane);
-
-        await assert.strictEqual(
-            aliceFetchedInvestment.toNumber(),
-            aliceFinalInvestment,
-            "Expected Alice's investment to be decreased for amount of tokens sent to Jane"
-        );
-
-        await assert.strictEqual(
-            janeFetchedInvestment.toNumber(),
-            janeFinalInvestment,
-            "Expected Jane's investment to be increased for amount of tokens sent from Alice"
-        );
-    });
-
-    it("should fail if user trying to transfer 0 tokens of ownership", async () => {
-        await createTestUser(bob);
-        await createTestUser(alice);
-        await createTestUser(jane);
-
-        const organization = await createAndActivateTestOrganization(bob);
-        const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
-
-        await eur.mint(alice, eurToToken(5000), { from: eurTokenOwner });
-        await eur.invest(project.address, eurToToken(5000), { from: alice });
-
-        const failedTransfer = project.transferOwnership(jane, eurToToken(0), { from: alice });
-        await assertRevert(
-            failedTransfer,
-            "Cannot transfer ownership of 0 tokens!"
-        );
-    });
-
-    it("should fail if user trying to transfer more tokens than actually invested", async () => {
-        await createTestUser(bob);
-        await createTestUser(alice);
-        await createTestUser(jane);
-
-        const organization = await createAndActivateTestOrganization(bob);
-        const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
-
-        await eur.mint(alice, eurToToken(5000), { from: eurTokenOwner });
-        await eur.invest(project.address, eurToToken(3000), { from: alice });
-
-        // Alice is trying to transfer 4000 EUR tokens but owns only 3000 EUR of investments
-        const failedTransfer = project.transferOwnership(jane, eurToToken(4000), { from: alice });
-        await assertRevert(
-            failedTransfer,
-            "Cannot transfer more tokens than actually invested!"
-        );
-    });
-
-    it("should fail if user trying to transfer tokens to someone not registered by AMPnet", async () => {
-        await createTestUser(bob);
-        await createTestUser(alice);
-
-        const organization = await createAndActivateTestOrganization(bob);
-        const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
-
-        await eur.mint(alice, eurToToken(5000), { from: eurTokenOwner });
-        await eur.invest(project.address, eurToToken(3000), { from: alice });
-
-        // Alice is trying to transfer 3000 EUR tokens to someone not registered by AMPnet
-        const failedTransfer = project.transferOwnership(jane, eurToToken(3000), { from: alice });
-        await assertRevert(
-            failedTransfer,
-            "Cannot transfer tokens to someone not registered by AMPnet!"
         );
     });
 
@@ -352,11 +140,13 @@ contract('Project', function(accounts) {
         await eur.mint(jane, eurToToken(2500), { from: eurTokenOwner });
 
         // Alice and Jane invest 2.5k EUR each, and project's 5k EUR cap should be reached
-        await eur.invest(project.address, eurToToken(2500), { from: alice });
-        await eur.invest(project.address, eurToToken(2500), { from: jane });
+        await eur.approve(project.address, eurToToken(2500), { from: alice });
+        await project.invest({ from: alice });
+        await eur.approve(project.address, eurToToken(2500), { from: jane });
+        await project.invest({ from: jane });
 
         // Withdraw complete investment amount after cap reached
-        await project.withdrawFunds(eurTokenOwner, smallTestProject.investmentCap, { from: bob });
+        const result = await project.withdraw(eurTokenOwner, smallTestProject.investmentCap, { from: bob });
         await eur.burnFrom(project.address, smallTestProject.investmentCap, { from: eurTokenOwner });
         const fetchedBalance = await eur.balanceOf(project.address);
         assert.strictEqual(
@@ -364,6 +154,10 @@ contract('Project', function(accounts) {
             eurToToken(0),
             "Expected project balance to be zero after investment cap reached and funds withdrawn!"
         );
+
+        truffleAssert.eventEmitted(result, 'WithdrawProjectFunds', (ev) => {
+            return ev.spender === bob && ev.amount.eq(smallTestProject.investmentCap)
+        }, "Withdraw project funds action did not emit correct event!");
     });
 
     it("should fail if trying to withdraw funds from project which is not yet completely funded", async () => {
@@ -376,9 +170,10 @@ contract('Project', function(accounts) {
         await eur.mint(alice, eurToToken(2500), { from: eurTokenOwner });
 
         // Alice invests 2.5k, project investment cap not reached
-        await eur.invest(project.address, eurToToken(2500), { from: alice });
+        await eur.approve(project.address, eurToToken(2500), { from: alice });
+        await project.invest({ from: alice });
 
-        const failedWithdraw = project.withdrawFunds(eurTokenOwner, eurToToken(2500), { from: bob });
+        const failedWithdraw = project.withdraw(eurTokenOwner, eurToToken(2500), { from: bob });
         assertRevert(
             failedWithdraw,
             "Expected withdraw action to fail since project investment cap not reached."
@@ -396,27 +191,195 @@ contract('Project', function(accounts) {
         await eur.mint(alice, eurToToken(2500), { from: eurTokenOwner });
 
         // Alice invests 5k, and caps project
-        await eur.invest(project.address, eurToToken(2500), { from: alice });
+        await eur.approve(project.address, eurToToken(2500), { from: alice });
+        await project.invest({ from: alice });
 
         // Evil Jane tries to withdraw project funds
-        const failedWithdraw = project.withdrawFunds(eurTokenOwner, eurToToken(5000), { from: jane })
+        const failedWithdraw = project.withdraw(eurTokenOwner, eurToToken(5000), { from: jane });
         assertRevert(
             failedWithdraw,
             "Expected withdraw action to fail since caller not organization admin."
         );
     });
 
+    it("should fail if user trying to invest in project not registered by Cooperative", async () => {
+        await createTestUser(bob);
+        const organization = await createAndActivateTestOrganization(bob);
+        const project = await Project.new(  // create Project but not through Cooperative
+            testProject.maxInvestment,
+            testProject.minInvestment,
+            testProject.investmentCap,
+            organization.address
+        );
+        await eur.mint(bob, eurToToken(2000), { from: eurTokenOwner });
+        const failedApprove = eur.approve(project.address, eurToToken(1000), { from: bob });
+        await assertRevert(failedApprove, "User can invest in Cooperative registered projects only!");
+    });
+
+    it("should fail if user trying to invest in project but user not registered in Copperative contract", async () => {
+        await createTestUser(bob);
+        const organization = await createAndActivateTestOrganization(bob);
+        const project = await addTestProject(organization, bob, testProject);
+        const failedApprove = eur.approve(project.address, eurToToken(1000), { from: alice });
+        await assertRevert(failedApprove, "Only registered users can invest in Cooperative projects!");
+    });
+
+    it("should fail if user investing 0 tokens", async () => {
+        await createTestUser(bob);
+        await eur.mint(bob, eurToToken(2000), { from: eurTokenOwner });
+        const organization = await createAndActivateTestOrganization(bob);
+        const project = await addTestProject(organization, bob, testProject);
+        const failedInvest = project.invest({ from: bob }); // invest 0 approved tokens
+        await assertRevert(failedInvest, "Can't invest 0 tokens!");
+    });
+
+    it("should fail if user investing more than available on account balance", async () => {
+        await createTestUser(bob);
+        await eur.mint(bob, eurToToken(2000), { from: eurTokenOwner });
+        const organization = await createAndActivateTestOrganization(bob);
+        const project = await addTestProject(organization, bob, testProject);
+        await eur.approve(project.address, eurToToken(3000), { from: bob });
+        const failedInvest = project.invest({ from: bob });
+        await assertRevert(failedInvest, "Can't invest more tokens than actually owned!");
+    });
+
+    it("should fail if user investing more than project's per-user max investment limit", async () => {
+        await createTestUser(bob);
+        await eur.mint(bob, eurToToken(20000), { from: eurTokenOwner });
+        const organization = await createAndActivateTestOrganization(bob);
+        const project = await addTestProject(organization, bob, testProject);
+        await eur.approve(project.address, eurToToken(10001), { from: bob });
+        const failedInvest = project.invest({ from: bob });
+        await assertRevert(failedInvest, "Can't invest more than project's per-user maximum!");
+    });
+
+    it("should fail if user investing less than project's per-user min investment limit", async () => {
+        await createTestUser(bob);
+        await eur.mint(bob, eurToToken(2000), { from: eurTokenOwner });
+        const organization = await createAndActivateTestOrganization(bob);
+        const project = await addTestProject(organization, bob, testProject);
+        await eur.approve(project.address, eurToToken(999), { from: bob });
+        const failedInvest = project.invest({ from: bob });
+        await assertRevert(failedInvest, "Can't invest less than project's per-user minimum!");
+    });
+
+    it("should fail if user trying to invest funds after which project's total investment would surpass investment cap", async () => {
+        await createTestUser(bob);
+        await createTestUser(alice);
+
+        await eur.mint(bob, eurToToken(5000), { from: eurTokenOwner });
+        await eur.mint(alice, eurToToken(5000), { from: eurTokenOwner });
+
+        const organization = await createAndActivateTestOrganization(bob);
+        const project = await addTestProject(organization, bob, smallTestProject);
+
+        // Alice invests 3k EUR
+        await eur.approve(project.address, eurToToken(3000), { from: alice });
+        await project.invest({ from: alice });
+
+        // Bob will also try to invest 3k EUR but only 2k is possible (5k investment cap), expecting fail
+        await eur.approve(project.address, eurToToken(3000), { from: bob});
+        const failedInvest = project.invest({ from: bob });
+        await assertRevert(failedInvest, "Surpassed project's investment cap!");
+    });
+
+    it("can process multiple user investments in same project, as long as total investment is in min/max boundaries", async () => {
+        await createTestUser(bob);
+        await createTestUser(alice);
+
+        const bobStartingBalance = eurToToken(5000);
+        const bobFirstInvestment = eurToToken(1000);
+        const bobSecondInvestment = eurToToken(1000);
+        const bobRemainingBalance = bobStartingBalance - bobFirstInvestment - bobSecondInvestment;
+
+        await eur.mint(bob, bobStartingBalance, { from: eurTokenOwner });
+        const organization = await createAndActivateTestOrganization(alice);
+        const project = await addTestProject(organization, alice, smallTestProject);
+
+        await eur.approve(project.address, bobFirstInvestment, { from: bob });
+        await project.invest({ from: bob });
+
+        await eur.approve(project.address, bobSecondInvestment, { from: bob });
+        await project.invest({ from: bob });
+
+        const bobFetchedBalance = await eur.balanceOf(bob);
+
+        assert.strictEqual(
+            bobFetchedBalance.toNumber(),
+            bobRemainingBalance,
+            "Bob's fetched remaining balance not equal to expected one."
+        );
+    });
+
+    it("should be able for token issuer to mint revenue shares for users after project got funded", async () => {
+        await createTestUser(bob);
+        const organization = await createAndActivateTestOrganization(bob);
+        const project = await addTestProject(organization, bob, smallTestProject);
+
+        await createTestUser(alice);
+        await createTestUser(jane);
+
+        const aliceInvestment = eurToToken(3000);
+        const janeInvestment = eurToToken(2000);
+
+        await eur.mint(alice, aliceInvestment, { from: eurTokenOwner });        // give user Alice 3k EUR balance
+        await eur.mint(jane, janeInvestment, { from: eurTokenOwner });          // give user Jane 2k EUR balance
+
+        await eur.approve(project.address, aliceInvestment, { from: alice });
+        await project.invest({ from: alice });                                  // Alice invests 3k EUR
+        await eur.approve(project.address, janeInvestment, { from: jane });
+        await project.invest({ from: jane });                                   // Jane invests 2k EUR
+
+        const projectFunded = await project.isCompletelyFunded();               // Check if project completely funded
+        assert.isOk(projectFunded, "Project should be locked for investments if cap is reached!");
+
+
+        // Assume project funded, powerplant earns money, revenue of 1000 EUR has to be shared between shareholders
+        const revenue = eurToToken(1000);
+        await eur.mint(project.address, revenue, { from: eurTokenOwner});
+        const startPayoutResult = await project.startRevenueSharesPayout(revenue, { from: bob });
+        const executePayoutBatchResult = await project.payoutRevenueShares({ from: bob });
+
+        const fetchedAliceBalance = await eur.balanceOf(alice);
+        const expectedAliceShare = revenue * aliceInvestment / smallTestProject.investmentCap;
+        assert.strictEqual(
+            fetchedAliceBalance.toNumber(),
+            expectedAliceShare,
+            "Invalid revenue share minted."
+        );
+
+        const fetchedJaneBalance = await eur.balanceOf(jane);
+        const expectedJaneShare = revenue * janeInvestment / smallTestProject.investmentCap;
+        assert.strictEqual(
+            fetchedJaneBalance.toNumber(),
+            expectedJaneShare,
+            "Invalid revenue share minted."
+        );
+
+        truffleAssert.eventEmitted(startPayoutResult, 'RevenuePayoutStarted', (ev) => {
+            return ev.revenue.eq(revenue)
+        }, "Revenue payout start action did not emit correct event!");
+
+        truffleAssert.eventEmitted(executePayoutBatchResult, 'RevenueShareMinted', (ev) => {
+            return ev.investor === alice && ev.amount.eq(expectedAliceShare)
+        }, "Revenue share payout to investor did not emit correct event!");
+
+        truffleAssert.eventEmitted(executePayoutBatchResult, 'RevenueShareMinted', (ev) => {
+            return ev.investor === jane && ev.amount.eq(expectedJaneShare)
+        }, "Revenue share payout to investor did not emit correct event!");
+    });
+
     // --- HELPER FUNCTIONS --- ///
 
     async function createTestUser(wallet) {
-        await ampnet.addWallet(wallet, { from: ampnetOwner });
+        await coop.addWallet(wallet, { from: coopOwner });
     }
 
     async function createAndActivateTestOrganization(admin) {
-        await ampnet.addOrganization({ from: admin });
-        const organizations = await ampnet.getAllOrganizations();
+        await coop.addOrganization({ from: admin });
+        const organizations = await coop.getOrganizations();
         const organization = Organization.at(organizations[0]);
-        await organization.activate( {from: ampnetOwner });
+        await organization.activate( {from: coopOwner });
         return organization
     }
 
@@ -427,7 +390,7 @@ contract('Project', function(accounts) {
             project.investmentCap,      // investment cap (10M EUR)
             { from: creatorWallet }
         );
-        const projects = await organization.getAllProjects();
+        const projects = await organization.getProjects();
         return Project.at(projects[0]);
     }
 

@@ -1,52 +1,50 @@
 pragma solidity 0.4.25;
 
 import "./Project.sol";
-import "./AMPnet.sol";
+import "./Cooperative.sol";
 
 
 contract Organization {
 
     /**
-        State vars
+        State
     */
-    address private _admin;
-
-    address[] private _members;
-
-    Project[] private _projects;
-
-    AMPnet private _ampnet;
-
-    bool private _verifiedByAMPnet = false;
+    address private admin;
+    address[] private members;
+    Project[] private projects;
+    Cooperative public coop;
+    bool public verifiedByCoop = false;
 
     /**
         Events
     */
     event ProjectAdded(address indexed project);
+    event MemberAdded(address indexed member);
+    event OrganizationApproved();
 
     /**
-        Init
+        Constructor
     */
-    constructor(address admin, AMPnet ampnet) public {
-        _admin = admin;
-        _ampnet = ampnet;
+    constructor(address _admin, Cooperative _coop) public {
+        admin = _admin;
+        coop = _coop;
     }
 
     /**
         Modifiers
     */
-    modifier ampnetOnly {
+    modifier coopOnly {
         require(
-            msg.sender == _ampnet.owner(),
-            "Illegal action. Only AMPnet can make this action!"
+            msg.sender == coop.owner(),
+            "Illegal action. Only Cooperative can make this action!"
         );
         _;
     }
 
     modifier organizationVerified {
         require(
-            _verifiedByAMPnet,
-            "Organization not verified by AMPnet!"
+            verifiedByCoop,
+            "Organization not verified by Cooperative!"
         );
         _;
     }
@@ -61,8 +59,8 @@ contract Organization {
 
     modifier walletActive(address wallet) {
         require(
-            _ampnet.isWalletActive(wallet),
-            "Wallet not registered as AMPnet user."
+            coop.isWalletActive(wallet),
+            "Wallet not registered as Cooperative member."
         );
         _;
     }
@@ -70,9 +68,10 @@ contract Organization {
     /**
         Functions
     */
-    function activate() public ampnetOnly {
-        _verifiedByAMPnet = true;
-        _ampnet.addOrganizationWallet(this);
+    function activate() public coopOnly {
+        verifiedByCoop = true;
+        coop.addOrganizationWallet(this);
+        emit OrganizationApproved();
     }
 
     function addProject(
@@ -88,11 +87,10 @@ contract Organization {
             maxInvestmentPerUser,
             minInvestmentPerUser,
             investmentCap,
-            this,
-            _ampnet
+            this
         );
-        _projects.push(project);
-        _ampnet.addProjectWallet(project);
+        projects.push(project);
+        coop.addProjectWallet(project);
         emit ProjectAdded(project);
     }
 
@@ -104,7 +102,8 @@ contract Organization {
         organizationVerified
         walletActive(wallet)
     {
-        _members.push(wallet);
+        members.push(wallet);
+        emit MemberAdded(wallet);
     }
 
     function withdrawFunds(
@@ -115,24 +114,19 @@ contract Organization {
         adminOnly
         organizationVerified
     {
-        EUR eur = _ampnet.getEurContract();
-        eur.approve(tokenIssuer, amount);
+        coop.token().approve(tokenIssuer, amount);
     }
 
-    function isVerified() public view returns (bool) {
-        return _verifiedByAMPnet;
-    }
-
-    function getAllProjects() public view returns (Project[]) {
-        return _projects;
+    function getProjects() public view returns (Project[]) {
+        return projects;
     }
 
     function getMembers() public view returns (address[]) {
-        return _members;
+        return members;
     }
 
     function isAdmin(address user) public view returns (bool) {
-        return user == _admin;
+        return user == admin;
     }
 
 }

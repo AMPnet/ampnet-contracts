@@ -4,33 +4,39 @@ import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20Burnable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20Detailed.sol";
-import "./AMPnet.sol";
-import "./Project.sol";
+import "./Cooperative.sol";
 
 
-contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintable, ERC20Burnable {
+contract EUR is ERC20, ERC20Detailed("Digital EUR", "EUR", 18), ERC20Mintable, ERC20Burnable {
 
-    AMPnet private _ampnet;
+    /**
+        This contract is owned by Cooperative and contains wallets
+        approved for using EUR token in order to invest/earn revenue shares.
+    */
+    Cooperative private coop;
 
-    constructor(AMPnet ampnet) public {
-        _ampnet = ampnet;
+    /**
+        Constructor - gets reference to Cooperative contract
+    */
+    constructor(Cooperative _coop) public {
+        coop = _coop;
     }
 
     /**
         Modifiers
     */
-    modifier isRegistered(address _user) {
+    modifier isRegistered(address wallet) {
         require(
-            _ampnet.isWalletActive(_user),
-            "Not a registered AMPnet user."
+            coop.isWalletActive(wallet) || isMinter(wallet),
+            "Not a registered Cooperative user."
         );
         _;
     }
 
     modifier senderRegistered() {
         require(
-            _ampnet.isWalletActive(msg.sender),
-            "Not a registered AMPnet user."
+            coop.isWalletActive(msg.sender),
+            "Not a registered Cooperative user."
         );
         _;
     }
@@ -41,35 +47,6 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
             "Not token issuer!"
         );
         _;
-    }
-
-    /**
-        Investment logic
-    */
-    function invest(
-        Project project,
-        uint256 amount
-    )
-        public
-        senderRegistered
-        isRegistered(project)
-    {
-        require(amount != 0);
-        require(balanceOf(msg.sender) >= amount);
-        require(!project.isLockedForInvestments());
-
-        uint256 usersCurrentTotalInvestment = project.getTotalInvestmentForUser(msg.sender);
-        uint256 usersNewTotalInvestment = usersCurrentTotalInvestment + amount;
-
-        uint256 projectCurrentTotalInvestment = project.getCurrentTotalInvestment();
-        uint256 projectNewTotalInvestment = projectCurrentTotalInvestment + amount;
-
-        require(usersNewTotalInvestment >= project.getMinInvestmentPerUser());
-        require(usersNewTotalInvestment <= project.getMaxInvestmentPerUser());
-        require(projectNewTotalInvestment <= project.getInvestmentCap());
-
-        transfer(project, amount);
-        project.addNewUserInvestment(msg.sender, amount);
     }
 
     /**
@@ -93,7 +70,7 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
         uint256 value
     )
         public
-        isTokenIssuer(spender)
+        isRegistered(spender)
         senderRegistered
         returns (bool)
     {
@@ -106,9 +83,12 @@ contract EUR is ERC20, ERC20Detailed("AMPnet EUR token", "EUR", 18), ERC20Mintab
         uint256 value
     )
         public
+        isRegistered(from)
+        isRegistered(to)
+        senderRegistered
         returns (bool)
     {
-        revert();
+        return super.transferFrom(from, to, value);
     }
 
     function increaseAllowance(
