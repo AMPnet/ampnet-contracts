@@ -5,6 +5,7 @@ const Project = artifacts.require("./Project.sol");
 
 const eurToToken = require('./utils/eur').eurToToken;
 const assertRevert = require('./utils/assertRevert').assertRevert;
+const time = require('./utils/time');
 
 const truffleAssert = require('truffle-assertions');
 
@@ -224,6 +225,7 @@ contract('Organization', function(accounts) {
             testProject.maxInvestment,      // max investment per user (10k EUR)
             testProject.minInvestment,      // min investment per user (1k EUR)
             testProject.investmentCap,      // investment cap (10M EUR)
+            testProject.endInvestmentTime,
             { from: creatorWallet }
         );
     }
@@ -233,7 +235,8 @@ contract('Organization', function(accounts) {
     const testProject = {
         maxInvestment: eurToToken(10000),
         minInvestment: eurToToken(1000),
-        investmentCap: eurToToken(10000000)
+        investmentCap: eurToToken(10000000),
+        endInvestmentTime: time.currentTimeWithDaysOffset(30)
     }
 
 });
