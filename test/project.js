@@ -4,7 +4,8 @@ const Organization = artifacts.require("./Organization.sol");
 const Project = artifacts.require("./Project.sol");
 
 const eurToToken = require('./utils/eur').eurToToken;
-const tokenToEur = require('./utils/eur').tokenToEur;
+const time = require('./utils/time');
+
 const truffleAssert = require('truffle-assertions');
 const assertRevert = require('./utils/assertRevert').assertRevert;
 
@@ -209,6 +210,7 @@ contract('Project', function(accounts) {
             testProject.maxInvestment,
             testProject.minInvestment,
             testProject.investmentCap,
+            time.addDays(new Date(), 30),
             organization.address
         );
         await eur.mint(bob, eurToToken(2000), { from: eurTokenOwner });
@@ -369,6 +371,114 @@ contract('Project', function(accounts) {
         }, "Revenue share payout to investor did not emit correct event!");
     });
 
+    it("should fail for users to investment if the project has expired", async () => {
+        await createTestUser(bob);
+        const organization = await createAndActivateTestOrganization(bob);
+        const endInvestmentTime = time.currentTimeWithSecondsOffset(-10);
+        const project = await addTestProjectWithEndInvestmentTime(organization, bob, testProject, endInvestmentTime);
+
+        await createTestUser(alice);
+        const aliceInvestment = eurToToken(6000);
+        await eur.mint(alice, aliceInvestment, {from: eurTokenOwner});
+
+        await eur.approve(project.address, aliceInvestment, {from: alice});
+        const failedInvest = project.invest({from: alice});
+        assertRevert(
+            failedInvest,
+            "Expected invest action to fail since project funding has ended."
+        );
+    });
+
+    it("should be able for users to withdraw investment if the project has expired", async () => {
+        await createTestUser(bob);
+        const organization = await createAndActivateTestOrganization(bob);
+        const endInvestmentTime = time.currentTimeWithSecondsOffset(1);
+        const project = await addTestProjectWithEndInvestmentTime(organization, bob, testProject, endInvestmentTime);
+
+        await createTestUser(alice);
+        await createTestUser(jane);
+
+        const aliceInvestment = eurToToken(6000);
+        const janeInvestment = eurToToken(8000);
+
+        await eur.mint(alice, aliceInvestment, {from: eurTokenOwner});        // give user Alice 6k EUR balance
+        await eur.mint(jane, janeInvestment, {from: eurTokenOwner});          // give user Jane 8k EUR balance
+
+        await eur.approve(project.address, aliceInvestment / 2, {from: alice});
+        await project.invest({from: alice});                                  // Alice invests 3k EUR
+        await eur.approve(project.address, aliceInvestment / 2, {from: alice});
+        await project.invest({from: alice});                                  // Alice invests 3k EUR
+        await eur.approve(project.address, janeInvestment, {from: jane});
+        await project.invest({from: jane});                                   // Jane invests 8k EUR
+
+        await time.timeout(2000);
+
+        const projectExpired = await project.hasFundingExpired();               // Check if project funding has expired
+        assert.isOk(projectExpired, "Project should expire!");
+
+        const aliceWithdraw = await project.withdrawInvestment({from: alice});
+        const aliceBalance = await eur.balanceOf(alice);
+        assert.strictEqual(
+            aliceBalance.toNumber(),
+            aliceInvestment,
+            "Alice account should get full project investment withdraw!"
+        );
+        truffleAssert.eventEmitted(aliceWithdraw, 'WithdrawProjectInvestment', (ev) => {
+            return ev.investor === alice && ev.amount.eq(aliceInvestment)
+        }, "Withdraw project investment action did not emit correct event!");
+
+        const janeWithdraw = await project.withdrawInvestment({from: jane});
+        const janeBalance = await eur.balanceOf(jane);
+        assert.strictEqual(
+            janeBalance.toNumber(),
+            janeInvestment,
+            "Jane account should get full project investment withdraw!"
+        );
+        truffleAssert.eventEmitted(janeWithdraw, 'WithdrawProjectInvestment', (ev) => {
+            return ev.investor === jane && ev.amount.eq(janeInvestment)
+        }, "Withdraw project investment action did not emit correct event!");
+    });
+
+    it("should fail for users to withdraw investment if the project has not expired", async () => {
+        await createTestUser(bob);
+        const organization = await createAndActivateTestOrganization(bob);
+        const endInvestmentTime = time.currentTimeWithSecondsOffset(100);
+        const project = await addTestProjectWithEndInvestmentTime(organization, bob, testProject, endInvestmentTime);
+
+        await createTestUser(alice);
+        const aliceInvestment = eurToToken(6000);
+        await eur.mint(alice, aliceInvestment, {from: eurTokenOwner});
+
+        await eur.approve(project.address, aliceInvestment, {from: alice});
+        await project.invest({from: alice});
+
+        const failedWithdraw = project.withdrawInvestment({from: alice});
+        assertRevert(
+            failedWithdraw,
+            "Expected withdraw investment action to fail since project funding has not ended."
+        );
+    });
+
+    it('should fail for users to withdraw investment if the project was completely funded', async () => {
+        await createTestUser(bob);
+        const organization = await createAndActivateTestOrganization(bob);
+        const project = await addTestProject(organization, bob, smallTestProject); // investment cap 5k EUR
+
+        await createTestUser(alice);
+
+        await eur.mint(alice, eurToToken(5000), { from: eurTokenOwner });
+
+        // Alice invest 5k EUR
+        await eur.approve(project.address, eurToToken(5000), { from: alice });
+        await project.invest({ from: alice });
+
+        const failedWithdraw = project.withdrawInvestment({from: alice});
+        assertRevert(
+            failedWithdraw,
+            "Expected withdraw investment action to fail since project has reached funding."
+        );
+    });
+
     // --- HELPER FUNCTIONS --- ///
 
     async function createTestUser(wallet) {
@@ -388,6 +498,19 @@ contract('Project', function(accounts) {
             project.maxInvestment,      // max investment per user (10k EUR)
             project.minInvestment,      // min investment per user (1k EUR)
             project.investmentCap,      // investment cap (10M EUR)
+            project.endInvestmentTime,
+            { from: creatorWallet }
+        );
+        const projects = await organization.getProjects();
+        return Project.at(projects[0]);
+    }
+
+    async function addTestProjectWithEndInvestmentTime(organization, creatorWallet, project, endInvestmentTime) {
+        await organization.addProject(
+            project.maxInvestment,      // max investment per user (10k EUR)
+            project.minInvestment,      // min investment per user (1k EUR)
+            project.investmentCap,      // investment cap (10M EUR)
+            endInvestmentTime,
             { from: creatorWallet }
         );
         const projects = await organization.getProjects();
@@ -399,13 +522,14 @@ contract('Project', function(accounts) {
     const testProject = {
         maxInvestment: eurToToken(10000),
         minInvestment: eurToToken(1000),
-        investmentCap: eurToToken(10000000)
+        investmentCap: eurToToken(10000000),
+        endInvestmentTime: time.addDays(new Date(), 30)
     };
 
     const smallTestProject = {
         maxInvestment: eurToToken(5000),
         minInvestment: eurToToken(1000),
-        investmentCap: eurToToken(5000)
+        investmentCap: eurToToken(5000),
+        endInvestmentTime: time.addDays(new Date(), 30)
     };
-
 });

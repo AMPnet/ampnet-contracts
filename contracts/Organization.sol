@@ -77,7 +77,8 @@ contract Organization {
     function addProject(
         uint256 maxInvestmentPerUser,
         uint256 minInvestmentPerUser,
-        uint256 investmentCap
+        uint256 investmentCap,
+        uint256 endInvestmentTime
     )
         public
         adminOnly
@@ -87,6 +88,7 @@ contract Organization {
             maxInvestmentPerUser,
             minInvestmentPerUser,
             investmentCap,
+            endInvestmentTime,
             this
         );
         projects.push(project);

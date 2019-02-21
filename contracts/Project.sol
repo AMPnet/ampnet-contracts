@@ -13,6 +13,7 @@ contract Project {
     uint256 public minInvestmentPerUser;
     uint256 public investmentCap;
     uint256 public totalFundsRaised;
+    uint256 public endInvestmentTime;
 
     bool public payoutInProcess;
     uint256 private revenueToSplit;
@@ -32,6 +33,7 @@ contract Project {
     event WithdrawProjectFunds(address indexed spender, uint256 amount);
     event RevenuePayoutStarted(uint256 revenue);
     event RevenueShareMinted(address indexed investor, uint256 amount);
+    event WithdrawProjectInvestment(address investor, uint256 amount);
 
     /**
         Constructor
@@ -40,11 +42,13 @@ contract Project {
         uint256 _maxInvestmentPerUser,
         uint256 _minInvestmentPerUser,
         uint256 _investmentCap,
+        uint256 _endInvestmentTime,
         Organization _organization
     ) public {
         maxInvestmentPerUser = _maxInvestmentPerUser;
         minInvestmentPerUser = _minInvestmentPerUser;
         investmentCap = _investmentCap;
+        endInvestmentTime = _endInvestmentTime;
         organization = _organization;
     }
 
@@ -97,6 +101,10 @@ contract Project {
         require(
             projectNewTotalInvestment <= investmentCap,
             "User's investment will make total funds raised greater than project's investment cap. Aborting."
+        );
+        require(
+            hasFundingExpired() == false,
+            "Project funding has ended"
         );
 
 
@@ -189,8 +197,29 @@ contract Project {
         }
     }
 
+    function withdrawInvestment() external {
+        require(
+            isCompletelyFunded() == false,
+            "Project funding is completed"
+        );
+        require(
+            hasFundingExpired(),
+            "Project funding is still active"
+        );
+
+        uint256 investment = investments[msg.sender];
+        investments[msg.sender] = 0;
+        organization.coop().token().transfer(msg.sender, investment);
+
+        emit WithdrawProjectInvestment(msg.sender, investment);
+    }
+
     function isCompletelyFunded() public view returns (bool) {
         return totalFundsRaised == investmentCap;
+    }
+
+    function hasFundingExpired() public view returns (bool) {
+        return block.timestamp > endInvestmentTime;
     }
 
 }
