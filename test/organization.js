@@ -236,7 +236,7 @@ contract('Organization', function(accounts) {
         maxInvestment: eurToToken(10000),
         minInvestment: eurToToken(1000),
         investmentCap: eurToToken(10000000),
-        endInvestmentTime: time.addDays(new Date(), 30)
+        endInvestmentTime: time.currentTimeWithDaysOffset(30)
     }
 
 });

@@ -210,7 +210,7 @@ contract('Project', function(accounts) {
             testProject.maxInvestment,
             testProject.minInvestment,
             testProject.investmentCap,
-            time.addDays(new Date(), 30),
+            time.currentTimeWithDaysOffset(30),
             organization.address
         );
         await eur.mint(bob, eurToToken(2000), { from: eurTokenOwner });
@@ -523,13 +523,13 @@ contract('Project', function(accounts) {
         maxInvestment: eurToToken(10000),
         minInvestment: eurToToken(1000),
         investmentCap: eurToToken(10000000),
-        endInvestmentTime: time.addDays(new Date(), 30)
+        endInvestmentTime: time.currentTimeWithDaysOffset(30)
     };
 
     const smallTestProject = {
         maxInvestment: eurToToken(5000),
         minInvestment: eurToToken(1000),
         investmentCap: eurToToken(5000),
-        endInvestmentTime: time.addDays(new Date(), 30)
+        endInvestmentTime: time.currentTimeWithDaysOffset(30)
     };
 });

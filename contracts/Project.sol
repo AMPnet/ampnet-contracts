@@ -103,7 +103,7 @@ contract Project {
             "User's investment will make total funds raised greater than project's investment cap. Aborting."
         );
         require(
-            hasFundingExpired() == false,
+            !hasFundingExpired(),
             "Project funding has ended"
         );
 
@@ -199,7 +199,7 @@ contract Project {
 
     function withdrawInvestment() external {
         require(
-            isCompletelyFunded() == false,
+            !isCompletelyFunded(),
             "Project funding is completed"
         );
         require(

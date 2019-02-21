@@ -3,8 +3,8 @@ function getCurrentTime() {
     return block.timestamp;
 }
 
-function addDays(date, days) {
-    var result = new Date(date);
+function currentTimeWithDaysOffset(days) {
+    var result = new Date();
     result.setDate(result.getDate() + days);
     return Math.floor(result.getTime()/1000);
 }
@@ -21,7 +21,7 @@ function timeout(ms) {
 
 Object.assign(exports, {
     getCurrentTime,
-    addDays,
+    currentTimeWithDaysOffset,
     currentTimeWithSecondsOffset,
     timeout
 });
