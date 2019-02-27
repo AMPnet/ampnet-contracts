@@ -24,7 +24,8 @@
     "eth-gas-reporter": "^0.1.12",
     "solhint": "^1.4.0",
     "solidity-coverage": "^0.5.8",
+    "truffle": "4.1.15",
     "truffle-assertions": "^0.7.2",
-    "truffle": "4.1.15"
+    "truffle-hdwallet-provider": "^1.0.4"
   }
 }
