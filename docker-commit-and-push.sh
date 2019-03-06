@@ -11,3 +11,4 @@ echo "Docker image: ampnet/crowdfunding-contracts:$version"
 docker commit ampnet-ganache ampnet/crowdfunding-contracts:$version
 docker tag ampnet/crowdfunding-contracts:$version ampnet/crowdfunding-contracts:latest
 docker push ampnet/crowdfunding-contracts:$version
+docker push ampnet/crowdfunding-contracts:latest
