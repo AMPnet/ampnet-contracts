@@ -9,7 +9,7 @@ module.exports = async function(deployer, network, accounts) {
     deployer.deploy(Cooperative, { from: coopOwner }).then(() => {
         return deployer.deploy(EUR, Cooperative.address, { from: eurTokenOwner }).then(() => {
             Cooperative.deployed().then(function(instance) {
-                instance.setToken(EUR.address, { from: ampnetOwner });
+                instance.setToken(EUR.address, { from: coopOwner });
             })
         })
     });
